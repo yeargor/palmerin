@@ -104,6 +104,8 @@ const logListEl = document.getElementById("logList");
 const spriteEl = document.querySelector(".sprite");
 const heroSectionEl = document.getElementById("heroSection");
 const fighterStageEl = document.querySelector(".fighter-stage");
+const logoWrapEl = document.querySelector(".game-logo-wrap");
+const logoEl = document.querySelector(".game-logo");
 
 function renderHeader() {
   characterNameEl.textContent = state.name;
@@ -188,13 +190,34 @@ function centerFighterToViewport() {
   fighterStageEl.style.marginTop = `${Math.round(correction)}px`;
 }
 
+function fitLogoToViewport() {
+  if (!logoWrapEl || !logoEl) {
+    return;
+  }
+
+  logoEl.style.transform = "scale(1)";
+  const wrapWidth = logoWrapEl.clientWidth;
+  const logoWidth = logoEl.scrollWidth;
+
+  if (!wrapWidth || !logoWidth) {
+    return;
+  }
+
+  const scale = Math.min(1, wrapWidth / logoWidth);
+  logoEl.style.transform = `scale(${scale})`;
+}
+
 renderHeader();
 renderStats();
 renderLogs();
 centerFighterToViewport();
+fitLogoToViewport();
 
 window.addEventListener("resize", centerFighterToViewport);
 window.addEventListener("orientationchange", centerFighterToViewport);
+window.addEventListener("resize", fitLogoToViewport);
+window.addEventListener("orientationchange", fitLogoToViewport);
 window.setTimeout(centerFighterToViewport, 80);
+window.setTimeout(fitLogoToViewport, 80);
 
 window.setInterval(pushRandomLog, 10000);

@@ -47,7 +47,7 @@ body {
 }
 
 .hero-header h1 {
-  margin: 0;
+  margin: 4px 0 0;
   font-size: 18px;
   line-height: 1.2;
   letter-spacing: 0.03em;
@@ -57,6 +57,24 @@ body {
   margin: 4px 0 0;
   font-size: 13px;
   color: var(--muted);
+}
+
+.game-logo-wrap {
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+}
+
+.game-logo {
+  margin: 0 auto;
+  display: inline-block;
+  color: var(--text);
+  font-size: clamp(7.5px, 2.4vw, 14px);
+  line-height: 1.03;
+  white-space: pre;
+  text-align: left;
+  transform-origin: top center;
 }
 
 .hero-grid {
@@ -156,7 +174,7 @@ body {
 
 .fighter-stage {
   position: relative;
-  height: clamp(150px, 30vh, 235px);
+  height: clamp(112px, 22.5vh, 176px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -196,6 +214,6 @@ body {
   }
 
   .fighter-stage {
-    height: clamp(140px, 28vh, 200px);
+    height: clamp(105px, 21vh, 150px);
   }
 }
