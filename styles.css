@@ -31,6 +31,7 @@ body {
 
 .app {
   height: 100vh;
+  min-height: 100svh;
   display: flex;
   flex-direction: column;
   background: var(--bg);
@@ -66,6 +67,10 @@ body {
   align-items: center;
 }
 
+.equip-center-spacer {
+  min-width: clamp(130px, 34vw, 220px);
+}
+
 .equip {
   font-size: 12px;
   line-height: 1.25;
@@ -84,7 +89,7 @@ body {
 .sprite {
   margin: 0;
   line-height: 1.05;
-  font-size: 13px;
+  font-size: clamp(14px, 3.8vw, 20px);
   text-align: center;
   white-space: pre;
   color: var(--rare);
@@ -149,12 +154,47 @@ body {
   border-left-color: var(--accent);
 }
 
+.fighter-stage {
+  position: relative;
+  height: clamp(130px, 30vh, 220px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 12px;
+}
+
+.fighter-stage .sprite {
+  position: absolute;
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+.stage-line {
+  width: 100%;
+  border-top: 1px solid #202020;
+}
+
 @media (max-width: 420px) {
   .hero-header h1 {
     font-size: 16px;
   }
 
-  .sprite {
-    font-size: 12px;
+  .hero-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .equip-center-spacer {
+    display: none;
+  }
+
+  .stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .fighter-stage {
+    height: clamp(120px, 26vh, 180px);
   }
 }
