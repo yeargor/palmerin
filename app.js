@@ -102,6 +102,8 @@ const statsRowEl = document.getElementById("statsRow");
 const logContainerEl = document.getElementById("logContainer");
 const logListEl = document.getElementById("logList");
 const spriteEl = document.querySelector(".sprite");
+const heroSectionEl = document.getElementById("heroSection");
+const fighterStageEl = document.querySelector(".fighter-stage");
 
 function renderHeader() {
   characterNameEl.textContent = state.name;
@@ -167,8 +169,32 @@ function pushRandomLog() {
   renderLogs();
 }
 
+function centerFighterToViewport() {
+  if (!heroSectionEl || !fighterStageEl || !spriteEl) {
+    return;
+  }
+
+  fighterStageEl.style.marginTop = "0px";
+
+  const viewportCenterY = window.innerHeight / 2;
+  const heroBottomY = heroSectionEl.getBoundingClientRect().bottom;
+  const stageHeight = fighterStageEl.getBoundingClientRect().height;
+  const spriteHeight = spriteEl.getBoundingClientRect().height;
+  const spriteBottomOffset = Number.parseFloat(getComputedStyle(spriteEl).bottom) || 0;
+
+  const spriteCenterY = heroBottomY + stageHeight - spriteBottomOffset - spriteHeight / 2;
+  const correction = viewportCenterY - spriteCenterY;
+
+  fighterStageEl.style.marginTop = `${Math.round(correction)}px`;
+}
+
 renderHeader();
 renderStats();
 renderLogs();
+centerFighterToViewport();
+
+window.addEventListener("resize", centerFighterToViewport);
+window.addEventListener("orientationchange", centerFighterToViewport);
+window.setTimeout(centerFighterToViewport, 80);
 
 window.setInterval(pushRandomLog, 10000);

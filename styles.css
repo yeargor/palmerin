@@ -156,7 +156,6 @@ body {
 
 .fighter-stage {
   position: relative;
-  margin-top: -6px;
   height: clamp(150px, 30vh, 235px);
   display: flex;
   align-items: flex-end;
@@ -197,7 +196,6 @@ body {
   }
 
   .fighter-stage {
-    margin-top: -4px;
     height: clamp(140px, 28vh, 200px);
   }
 }
