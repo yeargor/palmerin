@@ -1,0 +1,13 @@
+{
+  "name": "telegram-miniapp-demo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "preview:mobile": "bash ./scripts/preview-mobile.sh",
+    "capture:mobile": "node ./scripts/capture-mobile.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.55.0"
+  }
+}

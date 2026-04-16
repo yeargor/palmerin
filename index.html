@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Auto-Battler Mini App Demo</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app" id="appRoot">
+      <section class="hero" id="heroSection">
+        <header class="hero-header">
+          <h1 id="characterName">ANIME WARRIOR</h1>
+          <p id="characterMeta">Lv 1 • Rating 1250</p>
+        </header>
+
+        <div class="hero-grid">
+          <div class="equip equip-left">
+            <p class="equip-label">LEFT</p>
+            <p id="leftHand">[Wood Shield]</p>
+          </div>
+
+          <pre class="sprite" aria-label="character sprite"><span class="sprite-main">    /\      
+  ( ·  ·) </span><span class="sprite-sword">/ </span><span class="sprite-main">
+ </span><span class="sprite-shield">&lt;( ^ )&gt;</span><span class="sprite-sword">\/</span><span class="sprite-main">  
+  /|___|\   
+  /_/ \_\   </span></pre>
+
+          <div class="equip equip-right">
+            <p class="equip-label">RIGHT</p>
+            <p id="rightHand">[Rust Sword]</p>
+            <p class="equip-label">BODY</p>
+            <p id="bodySlot">[Empty]</p>
+          </div>
+        </div>
+
+        <div class="stats" id="statsRow"></div>
+      </section>
+
+      <section class="log-wrap" id="logContainer" aria-live="polite">
+        <ul class="log-list" id="logList"></ul>
+      </section>
+    </main>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
