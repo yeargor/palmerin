@@ -146,6 +146,7 @@ class ReplyTypewriter {
     minPauseMs = 120,
     maxPauseMs = 280,
     zeroHoldMs = 1000,
+    onUpdate = null,
   }) {
     this.targetEl = targetEl;
     this.minDelayMs = minDelayMs;
@@ -155,6 +156,7 @@ class ReplyTypewriter {
     this.minPauseMs = minPauseMs;
     this.maxPauseMs = maxPauseMs;
     this.zeroHoldMs = zeroHoldMs;
+    this.onUpdate = onUpdate;
     this.timer = null;
     this.currentText = "";
     this.currentIndex = 0;
@@ -326,6 +328,9 @@ class ReplyTypewriter {
 
       this.textEl.textContent += this.currentText[this.currentIndex];
       this.currentIndex += 1;
+      if (typeof this.onUpdate === "function") {
+        this.onUpdate();
+      }
       const stepIndex = this.stepIndex;
       this.stepIndex += 1;
       this.scheduleNextStep(stepIndex);
@@ -342,6 +347,9 @@ class ReplyTypewriter {
 
       this.currentIndex -= 1;
       this.textEl.textContent = this.currentText.slice(0, this.currentIndex);
+      if (typeof this.onUpdate === "function") {
+        this.onUpdate();
+      }
       const stepIndex = this.stepIndex;
       this.stepIndex += 1;
       this.scheduleNextStep(stepIndex);
@@ -438,7 +446,20 @@ function centerFighterToViewport() {
   const spriteCenterY = heroBottomY + stageHeight - spriteBottomOffset - spriteHeight / 2;
   const correction = viewportCenterY - spriteCenterY;
 
-  fighterStageEl.style.marginTop = `${Math.round(correction)}px`;
+  let adjustedCorrection = correction;
+  fighterStageEl.style.marginTop = `${Math.round(adjustedCorrection)}px`;
+
+  if (fighterQuoteEl?.textContent?.trim()) {
+    const quoteRect = fighterQuoteEl.getBoundingClientRect();
+    const spriteRect = spriteEl.getBoundingClientRect();
+    const minGap = 8;
+    const overlap = quoteRect.bottom + minGap - spriteRect.top;
+
+    if (overlap > 0) {
+      adjustedCorrection += overlap;
+      fighterStageEl.style.marginTop = `${Math.round(adjustedCorrection)}px`;
+    }
+  }
 }
 
 function fitLogoToViewport() {
@@ -471,6 +492,7 @@ const lastLogType = state.logs[state.logs.length - 1]?.type || "info";
 const initialReply = character.getReplyForLogType(lastLogType);
 const replyTypewriter = new ReplyTypewriter({
   targetEl: fighterQuoteEl,
+  onUpdate: centerFighterToViewport,
 });
 replyTypewriter.render(initialReply);
 
