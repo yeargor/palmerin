@@ -8,6 +8,7 @@ if (tg) {
 const profileByParam = {
   club: {
     id: 42,
+    classId: "warrior",
     name: "ANIME WARRIOR",
     level: 1,
     rating: 1250,
@@ -27,9 +28,13 @@ const profileByParam = {
       { time: "21:00", type: "info", text: "arena entry" },
       { time: "21:05", type: "event", text: "bar detour" },
     ],
+    replies: [
+      { classId: "warrior", logType: "event", text: "Steel first always" },
+    ],
   },
   ghost: {
     id: 77,
+    classId: "warrior",
     name: "NOISE WARDEN",
     level: 2,
     rating: 1308,
@@ -48,6 +53,9 @@ const profileByParam = {
     logs: [
       { time: "21:02", type: "info", text: "crowd scan" },
       { time: "21:06", type: "event", text: "quick dodge" },
+    ],
+    replies: [
+      { classId: "warrior", logType: "event", text: "Steel first always" },
     ],
   },
 };
@@ -102,10 +110,249 @@ const statsRowEl = document.getElementById("statsRow");
 const logContainerEl = document.getElementById("logContainer");
 const logListEl = document.getElementById("logList");
 const spriteEl = document.querySelector(".sprite");
+const fighterQuoteEl = document.getElementById("fighterQuote");
 const heroSectionEl = document.getElementById("heroSection");
 const fighterStageEl = document.querySelector(".fighter-stage");
 const logoWrapEl = document.querySelector(".game-logo-wrap");
 const logoEl = document.querySelector(".game-logo");
+
+class CharacterEntity {
+  constructor({ id, classId, replies }) {
+    this.id = id;
+    this.classId = classId;
+    this.replies = Array.isArray(replies) ? replies : [];
+  }
+
+  getReplyForLogType(logType) {
+    const classAndType = this.replies.find(
+      (reply) => reply.classId === this.classId && reply.logType === logType,
+    );
+    if (classAndType) {
+      return classAndType.text;
+    }
+
+    const classFallback = this.replies.find((reply) => reply.classId === this.classId);
+    return classFallback?.text || "";
+  }
+}
+
+class ReplyTypewriter {
+  constructor({
+    targetEl,
+    minDelayMs = 10,
+    maxDelayMs = 48,
+    minPauseCount = 1,
+    maxPauseCount = 3,
+    minPauseMs = 120,
+    maxPauseMs = 280,
+    zeroHoldMs = 1000,
+  }) {
+    this.targetEl = targetEl;
+    this.minDelayMs = minDelayMs;
+    this.maxDelayMs = maxDelayMs;
+    this.minPauseCount = minPauseCount;
+    this.maxPauseCount = maxPauseCount;
+    this.minPauseMs = minPauseMs;
+    this.maxPauseMs = maxPauseMs;
+    this.zeroHoldMs = zeroHoldMs;
+    this.timer = null;
+    this.currentText = "";
+    this.currentIndex = 0;
+    this.textEl = null;
+    this.nextText = "";
+    this.mode = "idle";
+    this.stepIndex = 0;
+    this.pauseIndices = [];
+    this.pauseSet = new Set();
+    this.segmentProfiles = [];
+    this.step = this.step.bind(this);
+  }
+
+  randomInt(min, max) {
+    if (max <= min) {
+      return min;
+    }
+    return min + Math.floor(Math.random() * (max - min + 1));
+  }
+
+  clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
+  randomPauseDelay() {
+    return this.randomInt(this.minPauseMs, this.maxPauseMs);
+  }
+
+  buildPausePlan(textLength) {
+    const maxByLength = Math.max(0, Math.floor(textLength / 8));
+    const allowedMax = Math.min(this.maxPauseCount, maxByLength);
+    const allowedMin = Math.min(this.minPauseCount, allowedMax);
+    const pauseCount = this.randomInt(allowedMin, allowedMax);
+
+    if (pauseCount <= 0 || textLength < 6) {
+      this.pauseIndices = [];
+      this.pauseSet = new Set();
+      this.segmentProfiles = [this.buildSegmentProfile()];
+      return;
+    }
+
+    const startIndex = Math.max(1, Math.floor(textLength * 0.18));
+    const endIndex = Math.max(startIndex, Math.floor(textLength * 0.85));
+    const indices = [];
+    const used = new Set();
+
+    while (indices.length < pauseCount) {
+      const idx = this.randomInt(startIndex, endIndex);
+      if (used.has(idx)) {
+        continue;
+      }
+      used.add(idx);
+      indices.push(idx);
+    }
+
+    indices.sort((a, b) => a - b);
+    this.pauseIndices = indices;
+    this.pauseSet = new Set(indices);
+    this.segmentProfiles = Array.from(
+      { length: this.pauseIndices.length + 1 },
+      () => this.buildSegmentProfile(),
+    );
+  }
+
+  buildSegmentProfile() {
+    const base = this.randomInt(this.minDelayMs, this.maxDelayMs);
+    const jitter = Math.max(2, Math.floor((this.maxDelayMs - this.minDelayMs) * 0.2));
+    return { base, jitter };
+  }
+
+  currentSegmentIndex(stepIndex) {
+    let segment = 0;
+    while (
+      segment < this.pauseIndices.length &&
+      stepIndex >= this.pauseIndices[segment]
+    ) {
+      segment += 1;
+    }
+    return segment;
+  }
+
+  randomTypingDelay(stepIndex) {
+    const segmentIndex = this.currentSegmentIndex(stepIndex);
+    const profile =
+      this.segmentProfiles[segmentIndex] ||
+      this.segmentProfiles[this.segmentProfiles.length - 1] ||
+      this.buildSegmentProfile();
+    const jitterOffset = this.randomInt(-profile.jitter, profile.jitter);
+    return this.clamp(
+      profile.base + jitterOffset,
+      this.minDelayMs,
+      this.maxDelayMs,
+    );
+  }
+
+  ensureQuoteNodes() {
+    if (!this.targetEl) {
+      return false;
+    }
+    if (!this.textEl) {
+      this.targetEl.innerHTML =
+        '<span class="fighter-quote-text"></span><span class="fighter-quote-cursor" aria-hidden="true">|</span>';
+      this.textEl = this.targetEl.querySelector(".fighter-quote-text");
+    }
+    return Boolean(this.textEl);
+  }
+
+  clearTimer() {
+    if (this.timer) {
+      window.clearTimeout(this.timer);
+      this.timer = null;
+    }
+  }
+
+  scheduleNextStep(stepIndex) {
+    const delay = this.pauseSet.has(stepIndex)
+      ? this.randomPauseDelay()
+      : this.randomTypingDelay(stepIndex);
+    this.timer = window.setTimeout(this.step, delay);
+  }
+
+  startTyping(text) {
+    if (!this.ensureQuoteNodes()) {
+      return;
+    }
+
+    this.clearTimer();
+    this.mode = "typing";
+    this.currentText = text || "";
+    this.currentIndex = 0;
+    this.stepIndex = 0;
+    this.buildPausePlan(this.currentText.length);
+    this.textEl.textContent = "";
+    this.step();
+  }
+
+  eraseAndType(nextText) {
+    if (!this.ensureQuoteNodes()) {
+      return;
+    }
+
+    this.clearTimer();
+    const visibleText = this.textEl.textContent || "";
+
+    if (!visibleText.length) {
+      this.startTyping(nextText);
+      return;
+    }
+
+    this.mode = "erasing";
+    this.currentText = visibleText;
+    this.currentIndex = visibleText.length;
+    this.stepIndex = 0;
+    this.nextText = nextText || "";
+    this.buildPausePlan(this.currentText.length);
+    this.step();
+  }
+
+  step() {
+    if (!this.targetEl || !this.textEl) {
+      return;
+    }
+
+    if (this.mode === "typing") {
+      if (this.currentIndex >= this.currentText.length) {
+        this.mode = "idle";
+        return;
+      }
+
+      this.textEl.textContent += this.currentText[this.currentIndex];
+      this.currentIndex += 1;
+      const stepIndex = this.stepIndex;
+      this.stepIndex += 1;
+      this.scheduleNextStep(stepIndex);
+      return;
+    }
+
+    if (this.mode === "erasing") {
+      if (this.currentIndex <= 0) {
+        this.timer = window.setTimeout(() => {
+          this.startTyping(this.nextText);
+        }, this.zeroHoldMs);
+        return;
+      }
+
+      this.currentIndex -= 1;
+      this.textEl.textContent = this.currentText.slice(0, this.currentIndex);
+      const stepIndex = this.stepIndex;
+      this.stepIndex += 1;
+      this.scheduleNextStep(stepIndex);
+    }
+  }
+
+  render(text) {
+    this.textEl = null;
+    this.startTyping(text);
+  }
+}
 
 function renderHeader() {
   characterNameEl.textContent = state.name;
@@ -169,6 +416,10 @@ function pushRandomLog() {
   state.logs = state.logs.slice(-5);
 
   renderLogs();
+
+  const lastLogType = state.logs[state.logs.length - 1]?.type || "info";
+  const nextReply = character.getReplyForLogType(lastLogType);
+  replyTypewriter.eraseAndType(nextReply);
 }
 
 function centerFighterToViewport() {
@@ -210,6 +461,19 @@ function fitLogoToViewport() {
 renderHeader();
 renderStats();
 renderLogs();
+
+const character = new CharacterEntity({
+  id: state.id,
+  classId: state.classId || "warrior",
+  replies: state.replies || [],
+});
+const lastLogType = state.logs[state.logs.length - 1]?.type || "info";
+const initialReply = character.getReplyForLogType(lastLogType);
+const replyTypewriter = new ReplyTypewriter({
+  targetEl: fighterQuoteEl,
+});
+replyTypewriter.render(initialReply);
+
 centerFighterToViewport();
 fitLogoToViewport();
 

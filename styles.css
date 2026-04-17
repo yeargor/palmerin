@@ -181,6 +181,51 @@ body {
   padding: 0 8px;
 }
 
+.fighter-quote-anchor {
+  position: relative;
+  height: 0;
+  z-index: 3;
+}
+
+.fighter-quote {
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  max-width: min(52vw, 240px);
+  color: var(--text);
+  font-size: clamp(14px, 3.4vw, 19px);
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  white-space: pre-wrap;
+  word-break: break-word;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.fighter-quote-text {
+  display: inline;
+}
+
+.fighter-quote-cursor {
+  display: inline-block;
+  margin-left: 1px;
+  font-size: 1em;
+  font-weight: 700;
+  animation: quote-cursor-blink 0.85s steps(1, end) infinite;
+}
+
+@keyframes quote-cursor-blink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 .fighter-stage .sprite {
   position: absolute;
   left: 50%;
