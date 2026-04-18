@@ -1,0 +1,6 @@
+      /\.
+   __/  \___
+    ( ·  ·)
+     /   \<span class="sprite-shield">\</span>
+    /_____\
+    /_/ \_\

@@ -58,6 +58,30 @@ const profileByParam = {
       { classId: "warrior", logType: "event", text: "Steel first always" },
     ],
   },
+  mage: {
+    id: 88,
+    classId: "mage",
+    name: "ARCANE HERMIT",
+    level: 1,
+    rating: 1211,
+    rarity: "rare",
+    stats: {
+      hp: "HP 36",
+      str: "STR 2",
+      dex: "DEX 10",
+      luck: "LUK 11",
+    },
+    equipment: {
+      leftHand: "Empty",
+      rightHand: "Oak Staff",
+      body: "Cloth Hood",
+    },
+    logs: [
+      { time: "21:03", type: "info", text: "mana check" },
+      { time: "21:07", type: "event", text: "rune whisper" },
+    ],
+    replies: [{ classId: "mage", logType: "event", text: "Arcane flow stable" }],
+  },
 };
 
 const logPool = [
@@ -78,6 +102,20 @@ const rarityToCssVar = {
   legendary: "var(--legendary)",
 };
 
+const spriteByClassId = {
+  warrior: `<span class="sprite-main">    /\\      
+  ( ·  ·) </span><span class="sprite-sword">/ </span><span class="sprite-main">
+ </span><span class="sprite-shield">&lt;( ^ )&gt;</span><span class="sprite-main">\\</span><span class="sprite-sword">/</span><span class="sprite-main">  
+  /|___|\\   
+  /_/ \\_\\   </span>`,
+  mage: `      /\\.
+   __/  \\___
+    ( ·  ·)
+     /   \\<span class="sprite-shield">\\</span>
+    /_____\\
+    /_/ \\_\\`,
+};
+
 function getStartParam() {
   const url = new URL(window.location.href);
   const urlParam =
@@ -88,6 +126,11 @@ function getStartParam() {
   return tg?.initDataUnsafe?.start_param || urlParam || "club";
 }
 
+function isSpriteDebugMode() {
+  const url = new URL(window.location.href);
+  return url.searchParams.get("debugSprite") === "1";
+}
+
 function nowTime() {
   const date = new Date();
   const hh = String(date.getHours()).padStart(2, "0");
@@ -96,6 +139,7 @@ function nowTime() {
 }
 
 const selectedProfile = profileByParam[getStartParam()] || profileByParam.club;
+const spriteDebugMode = isSpriteDebugMode();
 const state = {
   ...selectedProfile,
   logs: [...selectedProfile.logs],
@@ -370,12 +414,114 @@ function renderHeader() {
   bodySlotEl.textContent = `[${state.equipment.body}]`;
 
   spriteEl.style.color = rarityToCssVar[state.rarity] || "var(--rare)";
+  spriteEl.innerHTML = spriteByClassId[state.classId] || spriteByClassId.warrior;
+}
+
+function renderSpriteDebugPanel() {
+  if (!spriteDebugMode || !spriteEl || !fighterStageEl) {
+    return;
+  }
+
+  document.body.classList.add("sprite-debug-mode");
+
+  const existingPanel = document.querySelector(".sprite-debug-panel");
+  existingPanel?.remove();
+
+  const spriteText = spriteEl.textContent.replace(/\n+$/, "");
+  const lines = spriteText.split("\n");
+  const maxLength = Math.max(...lines.map((line) => line.length));
+  const axisIndex = Math.floor((maxLength - 1) / 2);
+  const marker = `${" ".repeat(axisIndex)}|${" ".repeat(Math.max(0, maxLength - axisIndex - 1))}`;
+  const spriteRect = spriteEl.getBoundingClientRect();
+  const stageRect = fighterStageEl.getBoundingClientRect();
+  const spriteStyle = getComputedStyle(spriteEl);
+  const htmlStyle = getComputedStyle(document.documentElement);
+  const bodyStyle = getComputedStyle(document.body);
+
+  const measureText = document.createElement("span");
+  measureText.className = "sprite-debug-measure";
+  document.body.append(measureText);
+
+  const measureSample = (sample) => {
+    measureText.textContent = sample || " ";
+    return Number(measureText.getBoundingClientRect().width.toFixed(3));
+  };
+
+  const glyphSamples = [" ", "/", "\\", "_", ".", "·", "(", ")", "^", "|", "A", "0"];
+  const glyphWidths = glyphSamples.map((sample) => {
+    const label = sample === " " ? "space" : sample;
+    return `${label}:${measureSample(sample)}`;
+  });
+
+  const lineWidths = lines.map((line, index) => {
+    const visibleLine = line.replaceAll(" ", "·");
+    return `${String(index + 1).padStart(2, "0")}: w=${measureSample(line)} text=${visibleLine}`;
+  });
+
+  measureText.remove();
+
+  const panel = document.createElement("section");
+  panel.className = "sprite-debug-panel";
+  panel.setAttribute("aria-label", "sprite debug panel");
+
+  const title = document.createElement("h2");
+  title.textContent = `Sprite Debug: ${state.classId}`;
+
+  const grid = document.createElement("pre");
+  grid.className = "sprite-debug-grid";
+  grid.textContent = [
+    `axis ${axisIndex}`,
+    marker,
+    ...lines.map((line, index) => `${String(index + 1).padStart(2, "0")} |${line.padEnd(maxLength)}| len=${line.length}`),
+  ].join("\n");
+
+  const env = document.createElement("pre");
+  env.className = "sprite-debug-env";
+  env.textContent = [
+    "runtime",
+    `url=${window.location.href}`,
+    `ua=${navigator.userAgent}`,
+    `dpr=${window.devicePixelRatio}`,
+    `viewport=${window.innerWidth}x${window.innerHeight}`,
+    `screen=${window.screen?.width}x${window.screen?.height}`,
+    `visualViewport=${window.visualViewport?.width ?? "n/a"}x${window.visualViewport?.height ?? "n/a"} scale=${window.visualViewport?.scale ?? "n/a"}`,
+    "",
+    "computed styles",
+    `sprite.class=${spriteEl.className}`,
+    `sprite.fontFamily=${spriteStyle.fontFamily}`,
+    `sprite.fontSize=${spriteStyle.fontSize}`,
+    `sprite.lineHeight=${spriteStyle.lineHeight}`,
+    `sprite.letterSpacing=${spriteStyle.letterSpacing}`,
+    `sprite.textAlign=${spriteStyle.textAlign}`,
+    `sprite.whiteSpace=${spriteStyle.whiteSpace}`,
+    `sprite.width=${spriteStyle.width}`,
+    `sprite.transform=${spriteStyle.transform}`,
+    `html.fontFamily=${htmlStyle.fontFamily}`,
+    `body.fontFamily=${bodyStyle.fontFamily}`,
+    "",
+    "rects",
+    `spriteRect x=${spriteRect.x.toFixed(2)} y=${spriteRect.y.toFixed(2)} w=${spriteRect.width.toFixed(2)} h=${spriteRect.height.toFixed(2)}`,
+    `stageRect x=${stageRect.x.toFixed(2)} y=${stageRect.y.toFixed(2)} w=${stageRect.width.toFixed(2)} h=${stageRect.height.toFixed(2)}`,
+    "",
+    "glyph widths",
+    glyphWidths.join(" "),
+    "",
+    "line widths",
+    ...lineWidths,
+  ].join("\n");
+
+  const note = document.createElement("p");
+  note.textContent =
+    "Send this panel or screenshot when the sprite looks different in your browser.";
+
+  panel.append(title, grid, env, note);
+  fighterStageEl.after(panel);
 }
 
 function renderStats() {
   statsRowEl.innerHTML = "";
 
-  const stats = [state.stats.hp, state.stats.str, state.stats.dex, state.stats.luck];
+  const stats = [state.stats.hp, state.stats.str];
 
   for (const value of stats) {
     const statEl = document.createElement("div");
@@ -482,6 +628,7 @@ function fitLogoToViewport() {
 renderHeader();
 renderStats();
 renderLogs();
+renderSpriteDebugPanel();
 
 const character = new CharacterEntity({
   id: state.id,
