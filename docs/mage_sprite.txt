@@ -1,6 +1,11 @@
-      /\.
+      /\        .
+   __/  \___   .
+    ( ·  ·)  .  .
+     /   \ <span class="sprite-shield">/</span>   .
+    /_____\
+
+      /\
    __/  \___
     ( ·  ·)
-     /   \<span class="sprite-shield">\</span>
+     /   \ /
     /_____\
-    /_/ \_\

@@ -1,7 +1,10 @@
 :root {
+  --sprite-grid-cols: 24;
+  --sprite-grid-rows: 7;
   --bg: #000000;
   --text: #ffffff;
   --accent: #fe0f0e;
+  --mage-hat: #1b2b5a;
   --shield: rgb(131, 90, 57);
   --sword: #9a9a9a;
   --common: rgb(153, 153, 153);
@@ -30,11 +33,82 @@ body {
 }
 
 .app {
+  position: relative;
   height: 100vh;
   min-height: 100svh;
   display: flex;
   flex-direction: column;
   background: var(--bg);
+  overflow: hidden;
+}
+
+.close-ascii-btn {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 10;
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
+.profile-selector-mode .close-ascii-btn {
+  display: none;
+}
+
+.profile-selector-screen {
+  height: 100%;
+  min-height: 100svh;
+  background: #000000;
+  color: #ffffff;
+  padding: 12px;
+  overflow: auto;
+}
+
+.profile-selector-title {
+  margin: 0 0 10px;
+  font-size: 16px;
+  line-height: 1.2;
+  color: #ffffff;
+}
+
+.profile-selector-list {
+  display: grid;
+  gap: 4px;
+}
+
+.profile-selector-item {
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  text-align: left;
+  padding: 0;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 16px;
+  line-height: 1.3;
+  cursor: pointer;
+}
+
+.profile-selector-item-active {
+  color: #ffd400;
+  animation: profile-active-blink 0.9s steps(1, end) infinite;
+}
+
+@keyframes profile-active-blink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 .hero {
@@ -108,10 +182,16 @@ body {
   margin: 0;
   line-height: 0.95;
   font-size: clamp(22px, 7vw, 38px);
-  width: max-content;
-  text-align: left;
+  width: calc(var(--sprite-grid-cols) * 1ch);
+  min-height: calc(var(--sprite-grid-rows) * 0.95em);
+  text-align: center;
   white-space: pre;
   color: var(--rare);
+}
+
+.sprite-grid-content {
+  display: inline-block;
+  text-align: left;
 }
 
 .sprite-main {
@@ -124,6 +204,18 @@ body {
 
 .sprite-shield {
   color: var(--shield);
+}
+
+.sprite-hat {
+  color: inherit;
+}
+
+.sprite-dust {
+  color: var(--legendary);
+}
+
+.sprite-gun {
+  color: var(--text);
 }
 
 .stats {
@@ -148,6 +240,8 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 10px 12px 20px;
+  margin-bottom: 38px;
+  border-bottom: 1px solid #202020;
 }
 
 .log-list {
@@ -192,13 +286,13 @@ body {
   position: absolute;
   top: 8px;
   left: 12px;
-  max-width: min(52vw, 240px);
+  max-width: none;
   color: var(--text);
   font-size: clamp(14px, 3.4vw, 19px);
   line-height: 1.2;
   letter-spacing: 0.01em;
-  white-space: pre-wrap;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
   z-index: 2;
   pointer-events: none;
 }

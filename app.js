@@ -1,3 +1,11 @@
+import {
+  SPRITE_GRID_WIDTH,
+  SPRITE_MIN_GRID_HEIGHT,
+  characterPresetByClassId,
+  buildRandomPreset,
+  renderPresetToSprite,
+} from "./src/sprite-constructor.js";
+
 const tg = window.Telegram?.WebApp;
 
 if (tg) {
@@ -82,6 +90,54 @@ const profileByParam = {
     ],
     replies: [{ classId: "mage", logType: "event", text: "Arcane flow stable" }],
   },
+  cowboy: {
+    id: 99,
+    classId: "cowboy",
+    name: "DUST RANGER",
+    level: 1,
+    rating: 1224,
+    rarity: "rare",
+    stats: {
+      hp: "HP 40",
+      str: "STR 4",
+      dex: "DEX 9",
+      luck: "LUK 10",
+    },
+    equipment: {
+      leftHand: "Iron Revolver",
+      rightHand: "Short Revolver",
+      body: "Dust Poncho",
+    },
+    logs: [
+      { time: "21:04", type: "info", text: "saloon watch" },
+      { time: "21:08", type: "event", text: "dual draw" },
+    ],
+    replies: [{ classId: "cowboy", logType: "event", text: "Keep your hands visible" }],
+  },
+  random: {
+    id: 111,
+    classId: "random",
+    name: "WILD MIX",
+    level: 1,
+    rating: 1199,
+    rarity: "rare",
+    stats: {
+      hp: "HP 38",
+      str: "STR 3",
+      dex: "DEX 10",
+      luck: "LUK 10",
+    },
+    equipment: {
+      leftHand: "Mixed Gear",
+      rightHand: "Mixed Gear",
+      body: "Mixed Outfit",
+    },
+    logs: [
+      { time: "21:09", type: "info", text: "parts shuffled" },
+      { time: "21:10", type: "event", text: "build locked" },
+    ],
+    replies: [{ classId: "random", logType: "event", text: "Loadout is unstable" }],
+  },
 };
 
 const logPool = [
@@ -102,18 +158,10 @@ const rarityToCssVar = {
   legendary: "var(--legendary)",
 };
 
-const spriteByClassId = {
-  warrior: `<span class="sprite-main">    /\\      
-  ( ·  ·) </span><span class="sprite-sword">/ </span><span class="sprite-main">
- </span><span class="sprite-shield">&lt;( ^ )&gt;</span><span class="sprite-main">\\</span><span class="sprite-sword">/</span><span class="sprite-main">  
-  /|___|\\   
-  /_/ \\_\\   </span>`,
-  mage: `      /\\.
-   __/  \\___
-    ( ·  ·)
-     /   \\<span class="sprite-shield">\\</span>
-    /_____\\
-    /_/ \\_\\`,
+let latestRenderedSpriteMeta = {
+  lines: Array.from({ length: SPRITE_MIN_GRID_HEIGHT }, () => "".padEnd(SPRITE_GRID_WIDTH, " ")),
+  width: SPRITE_GRID_WIDTH,
+  height: SPRITE_MIN_GRID_HEIGHT,
 };
 
 function getStartParam() {
@@ -138,12 +186,20 @@ function nowTime() {
   return `${hh}:${mm}`;
 }
 
-const selectedProfile = profileByParam[getStartParam()] || profileByParam.club;
+function isProfileSelectorMode() {
+  const url = new URL(window.location.href);
+  return url.searchParams.get("view") === "profiles";
+}
+
+const requestedProfileParam = getStartParam();
+const activeProfileParam = profileByParam[requestedProfileParam] ? requestedProfileParam : "club";
+const selectedProfile = profileByParam[activeProfileParam];
 const spriteDebugMode = isSpriteDebugMode();
 const state = {
   ...selectedProfile,
   logs: [...selectedProfile.logs],
 };
+const randomPreset = buildRandomPreset();
 
 const characterNameEl = document.getElementById("characterName");
 const characterMetaEl = document.getElementById("characterMeta");
@@ -159,6 +215,59 @@ const heroSectionEl = document.getElementById("heroSection");
 const fighterStageEl = document.querySelector(".fighter-stage");
 const logoWrapEl = document.querySelector(".game-logo-wrap");
 const logoEl = document.querySelector(".game-logo");
+const closeAsciiBtnEl = document.getElementById("closeAsciiBtn");
+let character = null;
+let replyTypewriter = null;
+
+function openProfileSelectorPage() {
+  const url = new URL(window.location.href);
+  url.searchParams.set("view", "profiles");
+  url.searchParams.set("startapp", activeProfileParam);
+  window.location.href = url.toString();
+}
+
+function openProfilePage(profileParam) {
+  const nextParam = profileByParam[profileParam] ? profileParam : "club";
+  const url = new URL(window.location.href);
+  url.searchParams.set("startapp", nextParam);
+  url.searchParams.delete("view");
+  window.location.href = url.toString();
+}
+
+function renderProfileSelectorPage() {
+  const appRootEl = document.getElementById("appRoot");
+  if (!appRootEl) {
+    return;
+  }
+
+  document.body.classList.add("profile-selector-mode");
+
+  appRootEl.innerHTML = `
+    <section class="profile-selector-screen" aria-label="Profile Selector">
+      <pre class="profile-selector-title">$ profiles/</pre>
+      <div class="profile-selector-list" id="profileSelectorList"></div>
+    </section>
+  `;
+
+  const listEl = document.getElementById("profileSelectorList");
+  if (!listEl) {
+    return;
+  }
+
+  const profileEntries = Object.entries(profileByParam);
+  for (const [key, profile] of profileEntries) {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "profile-selector-item";
+    if (key === activeProfileParam) {
+      row.classList.add("profile-selector-item-active");
+    }
+    row.textContent = `----------  ${profile.classId.padEnd(7, " ")}  ${key}`;
+    row.setAttribute("aria-label", `Open profile ${key}`);
+    row.addEventListener("click", () => openProfilePage(key));
+    listEl.appendChild(row);
+  }
+}
 
 class CharacterEntity {
   constructor({ id, classId, replies }) {
@@ -414,7 +523,20 @@ function renderHeader() {
   bodySlotEl.textContent = `[${state.equipment.body}]`;
 
   spriteEl.style.color = rarityToCssVar[state.rarity] || "var(--rare)";
-  spriteEl.innerHTML = spriteByClassId[state.classId] || spriteByClassId.warrior;
+  try {
+    const preset =
+      state.classId === "random"
+        ? randomPreset
+        : characterPresetByClassId[state.classId] || characterPresetByClassId.warrior;
+    const rendered = renderPresetToSprite(preset, state.classId);
+    latestRenderedSpriteMeta = rendered;
+    spriteEl.innerHTML = `<span class="sprite-grid-content">${rendered.html}</span>`;
+  } catch (error) {
+    console.error("Sprite preset validation failed:", error);
+    const rendered = renderPresetToSprite(characterPresetByClassId.warrior, "warrior");
+    latestRenderedSpriteMeta = rendered;
+    spriteEl.innerHTML = `<span class="sprite-grid-content">${rendered.html}</span>`;
+  }
 }
 
 function renderSpriteDebugPanel() {
@@ -427,9 +549,11 @@ function renderSpriteDebugPanel() {
   const existingPanel = document.querySelector(".sprite-debug-panel");
   existingPanel?.remove();
 
-  const spriteText = spriteEl.textContent.replace(/\n+$/, "");
-  const lines = spriteText.split("\n");
-  const maxLength = Math.max(...lines.map((line) => line.length));
+  const lines =
+    latestRenderedSpriteMeta?.lines?.map((line) => line.padEnd(latestRenderedSpriteMeta.width, " ")) ||
+    [];
+  const maxLength = latestRenderedSpriteMeta?.width || SPRITE_GRID_WIDTH;
+  const gridHeight = latestRenderedSpriteMeta?.height || Math.max(lines.length, SPRITE_MIN_GRID_HEIGHT);
   const axisIndex = Math.floor((maxLength - 1) / 2);
   const marker = `${" ".repeat(axisIndex)}|${" ".repeat(Math.max(0, maxLength - axisIndex - 1))}`;
   const spriteRect = spriteEl.getBoundingClientRect();
@@ -470,6 +594,7 @@ function renderSpriteDebugPanel() {
   const grid = document.createElement("pre");
   grid.className = "sprite-debug-grid";
   grid.textContent = [
+    `grid ${maxLength}x${gridHeight}`,
     `axis ${axisIndex}`,
     marker,
     ...lines.map((line, index) => `${String(index + 1).padStart(2, "0")} |${line.padEnd(maxLength)}| len=${line.length}`),
@@ -560,6 +685,10 @@ function renderLogs() {
 }
 
 function pushRandomLog() {
+  if (!character || !replyTypewriter) {
+    return;
+  }
+
   const randomText = logPool[Math.floor(Math.random() * logPool.length)];
 
   state.logs.push({
@@ -625,32 +754,40 @@ function fitLogoToViewport() {
   logoEl.style.transform = `scale(${scale})`;
 }
 
-renderHeader();
-renderStats();
-renderLogs();
-renderSpriteDebugPanel();
+if (isProfileSelectorMode()) {
+  renderProfileSelectorPage();
+} else {
+  renderHeader();
+  renderStats();
+  renderLogs();
+  renderSpriteDebugPanel();
 
-const character = new CharacterEntity({
-  id: state.id,
-  classId: state.classId || "warrior",
-  replies: state.replies || [],
-});
-const lastLogType = state.logs[state.logs.length - 1]?.type || "info";
-const initialReply = character.getReplyForLogType(lastLogType);
-const replyTypewriter = new ReplyTypewriter({
-  targetEl: fighterQuoteEl,
-  onUpdate: centerFighterToViewport,
-});
-replyTypewriter.render(initialReply);
+  character = new CharacterEntity({
+    id: state.id,
+    classId: state.classId || "warrior",
+    replies: state.replies || [],
+  });
+  const lastLogType = state.logs[state.logs.length - 1]?.type || "info";
+  const initialReply = character.getReplyForLogType(lastLogType);
+  replyTypewriter = new ReplyTypewriter({
+    targetEl: fighterQuoteEl,
+    onUpdate: centerFighterToViewport,
+  });
+  replyTypewriter.render(initialReply);
 
-centerFighterToViewport();
-fitLogoToViewport();
+  centerFighterToViewport();
+  fitLogoToViewport();
 
-window.addEventListener("resize", centerFighterToViewport);
-window.addEventListener("orientationchange", centerFighterToViewport);
-window.addEventListener("resize", fitLogoToViewport);
-window.addEventListener("orientationchange", fitLogoToViewport);
-window.setTimeout(centerFighterToViewport, 80);
-window.setTimeout(fitLogoToViewport, 80);
+  window.addEventListener("resize", centerFighterToViewport);
+  window.addEventListener("orientationchange", centerFighterToViewport);
+  window.addEventListener("resize", fitLogoToViewport);
+  window.addEventListener("orientationchange", fitLogoToViewport);
+  window.setTimeout(centerFighterToViewport, 80);
+  window.setTimeout(fitLogoToViewport, 80);
 
-window.setInterval(pushRandomLog, 10000);
+  window.setInterval(pushRandomLog, 10000);
+
+  if (closeAsciiBtnEl) {
+    closeAsciiBtnEl.addEventListener("click", openProfileSelectorPage);
+  }
+}
