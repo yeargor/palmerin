@@ -82,6 +82,30 @@ const profileByParam = {
     ],
     replies: [{ classId: "mage", logType: "event", text: "Arcane flow stable" }],
   },
+  cowboy: {
+    id: 99,
+    classId: "cowboy",
+    name: "DUST RANGER",
+    level: 1,
+    rating: 1224,
+    rarity: "rare",
+    stats: {
+      hp: "HP 40",
+      str: "STR 4",
+      dex: "DEX 9",
+      luck: "LUK 10",
+    },
+    equipment: {
+      leftHand: "Iron Revolver",
+      rightHand: "Short Revolver",
+      body: "Dust Poncho",
+    },
+    logs: [
+      { time: "21:04", type: "info", text: "saloon watch" },
+      { time: "21:08", type: "event", text: "dual draw" },
+    ],
+    replies: [{ classId: "cowboy", logType: "event", text: "Keep your hands visible" }],
+  },
 };
 
 const logPool = [
@@ -108,13 +132,34 @@ const spriteByClassId = {
  </span><span class="sprite-shield">&lt;( ^ )&gt;</span><span class="sprite-main">\\</span><span class="sprite-sword">/</span><span class="sprite-main">  
   /|___|\\   
   /_/ \\_\\   </span>`,
-  mage: `      /\\.
-   __/  \\___
-    ( ·  ·)
-     /   \\<span class="sprite-shield">\\</span>
-    /_____\\
-    /_/ \\_\\`,
+  mage: `<span class="sprite-hat">      /\\</span><span class="sprite-dust">        .</span>
+<span class="sprite-hat">   __/  \\___</span><span class="sprite-dust">   .</span>
+<span class="sprite-main">    ( ·  ·)</span><span class="sprite-dust">  .  .</span>
+<span class="sprite-main">     /   \\ </span><span class="sprite-shield">/</span><span class="sprite-dust">   .</span>
+<span class="sprite-main">    /_____\\    </span>`,
+  cowboy: `<span class="sprite-main">   __/--\\___
+   &gt;( ·  ·)
+     |_</span><span class="sprite-gun">Г‾‾</span><span class="sprite-main"> _</span><span class="sprite-gun">Г‾‾</span><span class="sprite-main"> 
+    /+++0+\\   
+    /_/ \\_\\</span>`,
 };
+
+const unifiedSpriteGrid = {
+  width: 24,
+  height: 5,
+};
+
+function toUnifiedGridLines(spriteText) {
+  const rawLines = spriteText.replace(/\n+$/, "").split("\n");
+  const lines = [];
+
+  for (let row = 0; row < unifiedSpriteGrid.height; row += 1) {
+    const source = rawLines[row] || "";
+    lines.push(source.padEnd(unifiedSpriteGrid.width, " ").slice(0, unifiedSpriteGrid.width));
+  }
+
+  return lines;
+}
 
 function getStartParam() {
   const url = new URL(window.location.href);
@@ -138,7 +183,14 @@ function nowTime() {
   return `${hh}:${mm}`;
 }
 
-const selectedProfile = profileByParam[getStartParam()] || profileByParam.club;
+function isProfileSelectorMode() {
+  const url = new URL(window.location.href);
+  return url.searchParams.get("view") === "profiles";
+}
+
+const requestedProfileParam = getStartParam();
+const activeProfileParam = profileByParam[requestedProfileParam] ? requestedProfileParam : "club";
+const selectedProfile = profileByParam[activeProfileParam];
 const spriteDebugMode = isSpriteDebugMode();
 const state = {
   ...selectedProfile,
@@ -159,6 +211,59 @@ const heroSectionEl = document.getElementById("heroSection");
 const fighterStageEl = document.querySelector(".fighter-stage");
 const logoWrapEl = document.querySelector(".game-logo-wrap");
 const logoEl = document.querySelector(".game-logo");
+const closeAsciiBtnEl = document.getElementById("closeAsciiBtn");
+let character = null;
+let replyTypewriter = null;
+
+function openProfileSelectorPage() {
+  const url = new URL(window.location.href);
+  url.searchParams.set("view", "profiles");
+  url.searchParams.set("startapp", activeProfileParam);
+  window.location.href = url.toString();
+}
+
+function openProfilePage(profileParam) {
+  const nextParam = profileByParam[profileParam] ? profileParam : "club";
+  const url = new URL(window.location.href);
+  url.searchParams.set("startapp", nextParam);
+  url.searchParams.delete("view");
+  window.location.href = url.toString();
+}
+
+function renderProfileSelectorPage() {
+  const appRootEl = document.getElementById("appRoot");
+  if (!appRootEl) {
+    return;
+  }
+
+  document.body.classList.add("profile-selector-mode");
+
+  appRootEl.innerHTML = `
+    <section class="profile-selector-screen" aria-label="Profile Selector">
+      <pre class="profile-selector-title">$ profiles/</pre>
+      <div class="profile-selector-list" id="profileSelectorList"></div>
+    </section>
+  `;
+
+  const listEl = document.getElementById("profileSelectorList");
+  if (!listEl) {
+    return;
+  }
+
+  const profileEntries = Object.entries(profileByParam);
+  for (const [key, profile] of profileEntries) {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "profile-selector-item";
+    if (key === activeProfileParam) {
+      row.classList.add("profile-selector-item-active");
+    }
+    row.textContent = `----------  ${profile.classId.padEnd(7, " ")}  ${key}`;
+    row.setAttribute("aria-label", `Open profile ${key}`);
+    row.addEventListener("click", () => openProfilePage(key));
+    listEl.appendChild(row);
+  }
+}
 
 class CharacterEntity {
   constructor({ id, classId, replies }) {
@@ -414,7 +519,8 @@ function renderHeader() {
   bodySlotEl.textContent = `[${state.equipment.body}]`;
 
   spriteEl.style.color = rarityToCssVar[state.rarity] || "var(--rare)";
-  spriteEl.innerHTML = spriteByClassId[state.classId] || spriteByClassId.warrior;
+  const spriteContent = spriteByClassId[state.classId] || spriteByClassId.warrior;
+  spriteEl.innerHTML = `<span class="sprite-grid-content">${spriteContent}</span>`;
 }
 
 function renderSpriteDebugPanel() {
@@ -427,9 +533,9 @@ function renderSpriteDebugPanel() {
   const existingPanel = document.querySelector(".sprite-debug-panel");
   existingPanel?.remove();
 
-  const spriteText = spriteEl.textContent.replace(/\n+$/, "");
-  const lines = spriteText.split("\n");
-  const maxLength = Math.max(...lines.map((line) => line.length));
+  const spriteText = spriteEl.textContent;
+  const lines = toUnifiedGridLines(spriteText);
+  const maxLength = unifiedSpriteGrid.width;
   const axisIndex = Math.floor((maxLength - 1) / 2);
   const marker = `${" ".repeat(axisIndex)}|${" ".repeat(Math.max(0, maxLength - axisIndex - 1))}`;
   const spriteRect = spriteEl.getBoundingClientRect();
@@ -470,6 +576,7 @@ function renderSpriteDebugPanel() {
   const grid = document.createElement("pre");
   grid.className = "sprite-debug-grid";
   grid.textContent = [
+    `grid ${unifiedSpriteGrid.width}x${unifiedSpriteGrid.height}`,
     `axis ${axisIndex}`,
     marker,
     ...lines.map((line, index) => `${String(index + 1).padStart(2, "0")} |${line.padEnd(maxLength)}| len=${line.length}`),
@@ -560,6 +667,10 @@ function renderLogs() {
 }
 
 function pushRandomLog() {
+  if (!character || !replyTypewriter) {
+    return;
+  }
+
   const randomText = logPool[Math.floor(Math.random() * logPool.length)];
 
   state.logs.push({
@@ -625,32 +736,40 @@ function fitLogoToViewport() {
   logoEl.style.transform = `scale(${scale})`;
 }
 
-renderHeader();
-renderStats();
-renderLogs();
-renderSpriteDebugPanel();
+if (isProfileSelectorMode()) {
+  renderProfileSelectorPage();
+} else {
+  renderHeader();
+  renderStats();
+  renderLogs();
+  renderSpriteDebugPanel();
 
-const character = new CharacterEntity({
-  id: state.id,
-  classId: state.classId || "warrior",
-  replies: state.replies || [],
-});
-const lastLogType = state.logs[state.logs.length - 1]?.type || "info";
-const initialReply = character.getReplyForLogType(lastLogType);
-const replyTypewriter = new ReplyTypewriter({
-  targetEl: fighterQuoteEl,
-  onUpdate: centerFighterToViewport,
-});
-replyTypewriter.render(initialReply);
+  character = new CharacterEntity({
+    id: state.id,
+    classId: state.classId || "warrior",
+    replies: state.replies || [],
+  });
+  const lastLogType = state.logs[state.logs.length - 1]?.type || "info";
+  const initialReply = character.getReplyForLogType(lastLogType);
+  replyTypewriter = new ReplyTypewriter({
+    targetEl: fighterQuoteEl,
+    onUpdate: centerFighterToViewport,
+  });
+  replyTypewriter.render(initialReply);
 
-centerFighterToViewport();
-fitLogoToViewport();
+  centerFighterToViewport();
+  fitLogoToViewport();
 
-window.addEventListener("resize", centerFighterToViewport);
-window.addEventListener("orientationchange", centerFighterToViewport);
-window.addEventListener("resize", fitLogoToViewport);
-window.addEventListener("orientationchange", fitLogoToViewport);
-window.setTimeout(centerFighterToViewport, 80);
-window.setTimeout(fitLogoToViewport, 80);
+  window.addEventListener("resize", centerFighterToViewport);
+  window.addEventListener("orientationchange", centerFighterToViewport);
+  window.addEventListener("resize", fitLogoToViewport);
+  window.addEventListener("orientationchange", fitLogoToViewport);
+  window.setTimeout(centerFighterToViewport, 80);
+  window.setTimeout(fitLogoToViewport, 80);
 
-window.setInterval(pushRandomLog, 10000);
+  window.setInterval(pushRandomLog, 10000);
+
+  if (closeAsciiBtnEl) {
+    closeAsciiBtnEl.addEventListener("click", openProfileSelectorPage);
+  }
+}
