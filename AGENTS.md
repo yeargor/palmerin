@@ -14,3 +14,5 @@
 - `docs/tamagotchi-ascii-art-skill.md` - ASCII style and color references.
 - `docs/warrior_sprite.txt` - canonical warrior sprite.
 - `docs/mage_sprite.txt` - canonical mage sprite.
+- `docs/cowboy_sprite.txt` - canonical cowboy sprite.
+- `docs/character_generator_architecture.md` - generator architecture, component system, centering, grid, offsets, and extension rules.
