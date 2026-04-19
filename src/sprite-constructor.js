@@ -10,17 +10,26 @@ const BASE_SLOT_ANCHOR_ROW = {
   legs: 4,
 };
 
+const SLOT_CENTER_COL_BY_SLOT = {
+  hat: 11,
+  face: 11,
+  arms: 11,
+  torso: 11,
+  legs: 11,
+};
+
 export function makeLayer(rowOffset, col, text, className = "sprite-main", zIndex = 0) {
   return { rowOffset, col, text, className, zIndex };
 }
 
 class SpriteComponent {
-  constructor({ id, slot, layers, effects = [], constraints = {} }) {
+  constructor({ id, slot, layers, effects = [], constraints = {}, anchor = null }) {
     this.id = id;
     this.slot = slot;
     this.layers = Array.isArray(layers) ? layers : [];
     this.effects = Array.isArray(effects) ? effects : [];
     this.constraints = constraints || {};
+    this.anchor = anchor;
   }
 }
 
@@ -29,28 +38,33 @@ export const componentById = {
     id: "hat_warrior",
     slot: "hat",
     layers: [makeLayer(0, 4, "/\\")],
+    anchor: { pattern: "/\\", targetIndexes: [1, 1] },
   }),
   hat_mage: new SpriteComponent({
     id: "hat_mage",
     slot: "hat",
     layers: [makeLayer(0, 6, "/\\", "sprite-hat"), makeLayer(1, 3, "__/  \\___", "sprite-hat")],
     effects: [{ type: "shift-slot-anchors", slots: ["face", "arms", "torso", "legs"], dy: 1 }],
+    anchor: { pattern: "__/  \\___", targetIndexes: [3, 5] },
   }),
   hat_cowboy: new SpriteComponent({
     id: "hat_cowboy",
     slot: "hat",
     layers: [makeLayer(0, 3, "__/--\\___")],
+    anchor: { pattern: "__/--\\___", targetIndexes: [3, 5] },
   }),
 
   face_plain: new SpriteComponent({
     id: "face_plain",
     slot: "face",
     layers: [makeLayer(0, 2, "( ·  ·)")],
+    anchor: { pattern: "( ·  ·)", targetIndexes: [2, 4] },
   }),
   face_bandana: new SpriteComponent({
     id: "face_bandana",
     slot: "face",
     layers: [makeLayer(0, 3, ">( ·  ·)")],
+    anchor: { pattern: ">( ·  ·)", targetIndexes: [3, 5] },
   }),
 
   arms_warrior: new SpriteComponent({
@@ -62,6 +76,7 @@ export const componentById = {
       makeLayer(0, 8, "\\", "sprite-main", 1),
       makeLayer(0, 9, "/", "sprite-sword", 2),
     ],
+    anchor: { pattern: "<( ^ )>", targetIndexes: [3, 5] },
   }),
   arms_mage: new SpriteComponent({
     id: "arms_mage",
@@ -75,48 +90,56 @@ export const componentById = {
       makeLayer(0, 11, "/", "sprite-shield", 2),
       makeLayer(0, 15, ".", "sprite-dust", 2),
     ],
+    anchor: { pattern: "/   \\", targetIndexes: [0, 4] },
   }),
   arms_cowboy: new SpriteComponent({
     id: "arms_cowboy",
     slot: "arms",
     layers: [
-      makeLayer(0, 5, "|_", "sprite-main", 1),
-      makeLayer(0, 7, "Г‾‾", "sprite-gun", 2),
-      makeLayer(0, 11, "_", "sprite-main", 1),
-      makeLayer(0, 12, "Г‾‾", "sprite-gun", 2),
+      makeLayer(0, 5, "| _", "sprite-main", 1),
+      makeLayer(0, 8, "Г‾‾", "sprite-gun", 2),
+      makeLayer(0, 12, "_", "sprite-main", 1),
+      makeLayer(0, 13, "Г‾‾", "sprite-gun", 2),
     ],
+    anchor: { pattern: "| _", targetIndexes: [2, 2] },
   }),
 
   torso_warrior: new SpriteComponent({
     id: "torso_warrior",
     slot: "torso",
     layers: [makeLayer(0, 2, "/|___|\\")],
+    anchor: { pattern: "/|___|\\", targetIndexes: [2, 4] },
   }),
   torso_mage: new SpriteComponent({
     id: "torso_mage",
     slot: "torso",
     layers: [makeLayer(0, 4, "/_____\\")],
+    anchor: { pattern: "/_____\\", targetIndexes: [2, 4] },
   }),
   torso_cowboy: new SpriteComponent({
     id: "torso_cowboy",
     slot: "torso",
     layers: [makeLayer(0, 4, "/+++0+\\")],
+    anchor: { pattern: "/+++0+\\", targetIndexes: [2, 4] },
   }),
 
   legs_boots: new SpriteComponent({
     id: "legs_boots",
     slot: "legs",
     layers: [makeLayer(0, 2, "/_/ \\_\\")],
+    anchor: { pattern: "/_/ \\_\\", targetIndexes: [3, 3] },
   }),
   legs_boots_offset: new SpriteComponent({
     id: "legs_boots_offset",
     slot: "legs",
     layers: [makeLayer(0, 4, "/_/ \\_\\")],
+    anchor: { pattern: "/_/ \\_\\", targetIndexes: [3, 3] },
   }),
   legs_hidden: new SpriteComponent({
     id: "legs_hidden",
     slot: "legs",
     layers: [],
+    anchor: null,
   }),
 };
 
@@ -235,8 +258,14 @@ function collectOps(preset) {
   for (const slot of COMPONENT_SLOTS) {
     const component = componentById[preset[slot]];
     const anchorRow = anchors[slot];
+    const anchorCol = resolveComponentAnchorCol(component);
+    const targetCol = SLOT_CENTER_COL_BY_SLOT[slot];
+    const dx =
+      Number.isFinite(anchorCol) && Number.isFinite(targetCol)
+        ? Math.round(targetCol - anchorCol)
+        : 0;
     for (const layer of component.layers) {
-      ops.push(...explodeLayerChars(layer, anchorRow + layer.rowOffset));
+      ops.push(...explodeLayerChars({ ...layer, col: layer.col + dx }, anchorRow + layer.rowOffset));
     }
   }
   return ops;
@@ -259,34 +288,65 @@ function getBounds(ops) {
   return { minRow, minCol, maxRow, maxCol };
 }
 
-function clamp(value, min, max) {
-  return Math.max(min, Math.min(max, value));
-}
-
-function targetMinColByProfile(profileClassId) {
-  if (profileClassId === "mage") {
-    return 3;
-  }
-  if (profileClassId === "cowboy") {
-    return 3;
-  }
-  if (profileClassId === "random") {
-    return 2;
-  }
-  return 1;
-}
-
 function normalizeOps(ops, profileClassId) {
+  void profileClassId;
   if (!ops.length) {
     return ops;
   }
   const bounds = getBounds(ops);
-  const desiredMinCol = targetMinColByProfile(profileClassId);
-  const minDx = -bounds.minCol;
-  const maxDx = (SPRITE_GRID_WIDTH - 1) - bounds.maxCol;
-  const dx = clamp(desiredMinCol - bounds.minCol, minDx, maxDx);
   const dy = bounds.minRow < 0 ? -bounds.minRow : 0;
-  return ops.map((op) => ({ ...op, row: op.row + dy, col: op.col + dx }));
+  return ops.map((op) => ({ ...op, row: op.row + dy }));
+}
+
+function layerNonSpaceBounds(layer) {
+  let minCol = Infinity;
+  let maxCol = -Infinity;
+  for (let i = 0; i < layer.text.length; i += 1) {
+    if (layer.text[i] === " ") {
+      continue;
+    }
+    minCol = Math.min(minCol, layer.col + i);
+    maxCol = Math.max(maxCol, layer.col + i);
+  }
+  if (maxCol === -Infinity) {
+    return null;
+  }
+  return { minCol, maxCol };
+}
+
+function componentFallbackAnchorCol(component) {
+  let minCol = Infinity;
+  let maxCol = -Infinity;
+  for (const layer of component.layers) {
+    const bounds = layerNonSpaceBounds(layer);
+    if (!bounds) {
+      continue;
+    }
+    minCol = Math.min(minCol, bounds.minCol);
+    maxCol = Math.max(maxCol, bounds.maxCol);
+  }
+  if (maxCol === -Infinity) {
+    return null;
+  }
+  return (minCol + maxCol) / 2;
+}
+
+function resolveComponentAnchorCol(component) {
+  const anchor = component.anchor;
+  if (!anchor || !anchor.pattern || !Array.isArray(anchor.targetIndexes)) {
+    return componentFallbackAnchorCol(component);
+  }
+
+  const [targetStart, targetEnd] = anchor.targetIndexes;
+  for (const layer of component.layers) {
+    const patternStart = layer.text.indexOf(anchor.pattern);
+    if (patternStart < 0) {
+      continue;
+    }
+    const localCenter = patternStart + (targetStart + targetEnd) / 2;
+    return layer.col + localCenter;
+  }
+  return componentFallbackAnchorCol(component);
 }
 
 function createGrid(width, height) {
