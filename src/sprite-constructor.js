@@ -2,6 +2,27 @@ export const SPRITE_GRID_WIDTH = 24;
 export const SPRITE_MIN_GRID_HEIGHT = 7;
 export const SPRITE_BOTTOM_PADDING_ROWS = 1;
 export const COMPONENT_SLOTS = ["hat", "face", "arms", "torso", "legs"];
+export const COMBAT_STAT_MIN = 1;
+export const COMBAT_STAT_MAX = 10;
+const COLOR_POWER_EXPONENT = 1.8;
+const COLOR_TIER_IDS = ["uncommon", "rare", "seraph", "amber", "reggae", "palmerin"];
+const COLOR_BASE_PROBABILITIES = {
+  uncommon: 0.5,
+  rare: 0.32,
+  seraph: 0.13,
+  amber: 0.04,
+  reggae: 0.009,
+  palmerin: 0.009,
+};
+const COLOR_TIER_PRESSURE = {
+  uncommon: -2.2,
+  rare: -1.1,
+  seraph: 0.3,
+  amber: 0.55,
+  reggae: 0.9,
+  palmerin: 0.9,
+};
+const AMBER_UNLOCK_STAT = 9;
 
 const BASE_SLOT_ANCHOR_ROW = {
   hat: 0,
@@ -24,7 +45,16 @@ export function makeLayer(rowOffset, col, text, className = "sprite-main", zInde
 }
 
 class SpriteComponent {
-  constructor({ id, slot, layers, effects = [], constraints = {}, anchor = null, baseClass = "shared" }) {
+  constructor({
+    id,
+    slot,
+    layers,
+    effects = [],
+    constraints = {},
+    anchor = null,
+    baseClass = "shared",
+    stats = {},
+  }) {
     this.id = id;
     this.slot = slot;
     this.layers = Array.isArray(layers) ? layers : [];
@@ -32,6 +62,10 @@ class SpriteComponent {
     this.constraints = constraints || {};
     this.anchor = anchor;
     this.baseClass = baseClass;
+    this.stats = {
+      hp: Number.isFinite(stats.hp) ? stats.hp : 0,
+      attack: Number.isFinite(stats.attack) ? stats.attack : 0,
+    };
   }
 }
 
@@ -42,6 +76,7 @@ export const componentById = {
     layers: [makeLayer(0, 4, "/\\")],
     anchor: { pattern: "/\\", targetIndexes: [1, 1] },
     baseClass: "warrior",
+    stats: { hp: 2, attack: 0 },
   }),
   hat_mage: new SpriteComponent({
     id: "hat_mage",
@@ -50,6 +85,7 @@ export const componentById = {
     effects: [{ type: "shift-slot-anchors", slots: ["face", "arms", "torso", "legs"], dy: 1 }],
     anchor: { pattern: "__/  \\___", targetIndexes: [3, 5] },
     baseClass: "mage",
+    stats: { hp: 1, attack: 1 },
   }),
   hat_cowboy: new SpriteComponent({
     id: "hat_cowboy",
@@ -57,6 +93,7 @@ export const componentById = {
     layers: [makeLayer(0, 3, "__/--\\___")],
     anchor: { pattern: "__/--\\___", targetIndexes: [3, 5] },
     baseClass: "cowboy",
+    stats: { hp: 1, attack: 1 },
   }),
 
   face_plain: new SpriteComponent({
@@ -64,6 +101,7 @@ export const componentById = {
     slot: "face",
     layers: [makeLayer(0, 2, "( ·  ·)")],
     anchor: { pattern: "( ·  ·)", targetIndexes: [2, 4] },
+    stats: { hp: 1, attack: 1 },
   }),
   face_bandana: new SpriteComponent({
     id: "face_bandana",
@@ -71,6 +109,7 @@ export const componentById = {
     layers: [makeLayer(0, 3, ">( ·  ·)")],
     anchor: { pattern: ">( ·  ·)", targetIndexes: [3, 5] },
     baseClass: "cowboy",
+    stats: { hp: 1, attack: 1 },
   }),
 
   arms_warrior: new SpriteComponent({
@@ -84,6 +123,7 @@ export const componentById = {
     ],
     anchor: { pattern: "<( ^ )>", targetIndexes: [3, 5] },
     baseClass: "warrior",
+    stats: { hp: 1, attack: 2 },
   }),
   arms_mage: new SpriteComponent({
     id: "arms_mage",
@@ -91,6 +131,7 @@ export const componentById = {
     layers: [makeLayer(0, 5, "/   \\", "sprite-main", 1)],
     anchor: { pattern: "/   \\", targetIndexes: [0, 4] },
     baseClass: "shared",
+    stats: { hp: 1, attack: 1 },
   }),
   arms_mage_mantle_top: new SpriteComponent({
     id: "arms_mage_mantle_top",
@@ -106,6 +147,7 @@ export const componentById = {
     ],
     anchor: { pattern: "/  o\\", targetIndexes: [2, 2] },
     baseClass: "mage",
+    stats: { hp: 1, attack: 2 },
   }),
   arms_cowboy: new SpriteComponent({
     id: "arms_cowboy",
@@ -118,6 +160,7 @@ export const componentById = {
     ],
     anchor: { pattern: "| _", targetIndexes: [2, 2] },
     baseClass: "cowboy",
+    stats: { hp: 0, attack: 4 },
   }),
 
   torso_warrior: new SpriteComponent({
@@ -126,6 +169,7 @@ export const componentById = {
     layers: [makeLayer(0, 2, "/|___|\\")],
     anchor: { pattern: "/|___|\\", targetIndexes: [2, 4] },
     baseClass: "warrior",
+    stats: { hp: 3, attack: 1 },
   }),
   torso_mage: new SpriteComponent({
     id: "torso_mage",
@@ -133,6 +177,7 @@ export const componentById = {
     layers: [makeLayer(0, 4, "/_____\\")],
     anchor: { pattern: "/_____\\", targetIndexes: [2, 4] },
     baseClass: "mage",
+    stats: { hp: 2, attack: 2 },
   }),
   torso_mage_mantle_bottom: new SpriteComponent({
     id: "torso_mage_mantle_bottom",
@@ -140,6 +185,7 @@ export const componentById = {
     layers: [makeLayer(0, 4, "/__/\\_\\")],
     anchor: { pattern: "/__/\\_\\", targetIndexes: [3, 4] },
     baseClass: "mage",
+    stats: { hp: 2, attack: 2 },
   }),
   torso_cowboy: new SpriteComponent({
     id: "torso_cowboy",
@@ -147,6 +193,7 @@ export const componentById = {
     layers: [makeLayer(0, 4, "/+++0+\\")],
     anchor: { pattern: "/+++0+\\", targetIndexes: [2, 4] },
     baseClass: "cowboy",
+    stats: { hp: 1, attack: 2 },
   }),
 
   legs_boots: new SpriteComponent({
@@ -154,6 +201,7 @@ export const componentById = {
     slot: "legs",
     layers: [makeLayer(0, 2, "/_/ \\_\\")],
     anchor: { pattern: "/_/ \\_\\", targetIndexes: [3, 3] },
+    stats: { hp: 1, attack: 1 },
   }),
 };
 
@@ -228,6 +276,121 @@ export function detectPresetDominantBaseClass(preset) {
 
 function randomFrom(list) {
   return list[Math.floor(Math.random() * list.length)];
+}
+
+function clampCombatStat(value) {
+  const numeric = Number.isFinite(value) ? value : 0;
+  return Math.max(COMBAT_STAT_MIN, Math.min(COMBAT_STAT_MAX, Math.round(numeric)));
+}
+
+export function getPresetCombatStats(preset) {
+  validatePresetOrThrow(preset);
+  let hp = 0;
+  let attack = 0;
+
+  for (const slot of COMPONENT_SLOTS) {
+    const component = componentById[preset[slot]];
+    if (!component) {
+      continue;
+    }
+    hp += Number(component.stats?.hp) || 0;
+    attack += Number(component.stats?.attack) || 0;
+  }
+
+  return {
+    hp: clampCombatStat(hp),
+    attack: clampCombatStat(attack),
+  };
+}
+
+function getComponentCombatPower(componentId) {
+  const component = componentById[componentId];
+  if (!component) {
+    return 0;
+  }
+  const hp = Number(component.stats?.hp) || 0;
+  const attack = Number(component.stats?.attack) || 0;
+  return Math.max(0, hp + attack);
+}
+
+function getPresetPowerScore(preset) {
+  let score = 0;
+  for (const slot of COMPONENT_SLOTS) {
+    const power = getComponentCombatPower(preset[slot]);
+    score += power ** COLOR_POWER_EXPONENT;
+  }
+  return score;
+}
+
+function getRandomPoolPowerScoreBounds() {
+  let minScore = 0;
+  let maxScore = 0;
+
+  for (const slot of COMPONENT_SLOTS) {
+    const ids = randomPoolBySlot[slot] || [];
+    if (!ids.length) {
+      continue;
+    }
+    let minSlot = Infinity;
+    let maxSlot = -Infinity;
+    for (const id of ids) {
+      const value = getComponentCombatPower(id) ** COLOR_POWER_EXPONENT;
+      minSlot = Math.min(minSlot, value);
+      maxSlot = Math.max(maxSlot, value);
+    }
+    minScore += Number.isFinite(minSlot) ? minSlot : 0;
+    maxScore += Number.isFinite(maxSlot) ? maxSlot : 0;
+  }
+
+  if (maxScore <= minScore) {
+    maxScore = minScore + 1;
+  }
+
+  return { minScore, maxScore };
+}
+
+export function getPresetColorTierWeights(preset) {
+  validatePresetOrThrow(preset);
+  const score = getPresetPowerScore(preset);
+  const combatStats = getPresetCombatStats(preset);
+  const maxStat = Math.max(combatStats.hp, combatStats.attack);
+  const { minScore, maxScore } = getRandomPoolPowerScoreBounds();
+  const quality = Math.max(0, Math.min(1, (score - minScore) / (maxScore - minScore)));
+  const maxStatRatio = Math.max(0, maxStat) / Math.max(1, COMBAT_STAT_MAX);
+  const pressure =
+    (0.95 * quality) +
+    (0.65 * quality * quality) +
+    (0.95 * maxStatRatio * maxStatRatio);
+
+  const raw = {};
+  for (const tier of COLOR_TIER_IDS) {
+    const base = COLOR_BASE_PROBABILITIES[tier] ?? 0;
+    const shift = COLOR_TIER_PRESSURE[tier] ?? 0;
+    raw[tier] = base * Math.exp(pressure * shift);
+  }
+  // Continuous dampening for top rarity tiers:
+  // keeps amber/reggae/palmerin from over-dominating at mid-high stats,
+  // while still letting them grow toward late quality.
+  const topTierFactor = quality ** 1.6;
+  const amberActivationBase = Math.max(
+    0,
+    (maxStat - (AMBER_UNLOCK_STAT - 1)) / Math.max(1, COMBAT_STAT_MAX - (AMBER_UNLOCK_STAT - 1)),
+  );
+  const amberActivation = amberActivationBase ** 1.35;
+  raw.amber *= (0.5 + 0.5 * topTierFactor) * amberActivation;
+  raw.reggae *= topTierFactor * (amberActivation ** 1.35);
+  raw.palmerin *= topTierFactor * (amberActivation ** 1.35);
+  const rawSum = COLOR_TIER_IDS.reduce((sum, tier) => sum + raw[tier], 0);
+  const norm = rawSum > 0 ? rawSum : 1;
+  const weights = Object.fromEntries(COLOR_TIER_IDS.map((tier) => [tier, (raw[tier] / norm) * 100]));
+
+  return {
+    quality,
+    score,
+    minScore,
+    maxScore,
+    weights,
+  };
 }
 
 function readConstraintList(value) {

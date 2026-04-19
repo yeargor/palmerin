@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  COMBAT_STAT_MAX,
+  COMBAT_STAT_MIN,
   SPRITE_GRID_WIDTH,
   SPRITE_MIN_GRID_HEIGHT,
   COMPONENT_SLOTS,
@@ -8,6 +10,8 @@ import {
   characterPresetByClassId,
   componentById,
   detectPresetDominantBaseClass,
+  getPresetColorTierWeights,
+  getPresetCombatStats,
   renderPresetToSprite,
   validatePresetOrThrow,
 } from "../src/sprite-constructor.js";
@@ -126,4 +130,116 @@ test("dominant base class is resolved from majority of component classes", () =>
     legs: "legs_boots",
   };
   assert.equal(detectPresetDominantBaseClass(cowboyMajorityPreset), "cowboy");
+});
+
+test("default class presets follow HP/ATTACK balance rules", () => {
+  const warriorStats = getPresetCombatStats(characterPresetByClassId.warrior);
+  const mageStats = getPresetCombatStats(characterPresetByClassId.mage);
+  const cowboyStats = getPresetCombatStats(characterPresetByClassId.cowboy);
+
+  assert.ok(warriorStats.hp > warriorStats.attack, "warrior should be hp-heavy");
+  assert.ok(cowboyStats.attack > cowboyStats.hp, "cowboy should be attack-heavy");
+  assert.ok(
+    Math.abs(mageStats.hp - mageStats.attack) <= 1,
+    "mage should be balanced between hp and attack",
+  );
+});
+
+test("shirt and boots each give 1 HP and 1 ATTACK", () => {
+  assert.equal(componentById.arms_mage.stats.hp, 1);
+  assert.equal(componentById.arms_mage.stats.attack, 1);
+  assert.equal(componentById.legs_boots.stats.hp, 1);
+  assert.equal(componentById.legs_boots.stats.attack, 1);
+});
+
+test("combat stats are clamped to configured bounds", () => {
+  const original = componentById.arms_cowboy;
+  try {
+    componentById.arms_cowboy = {
+      ...original,
+      stats: { hp: 1000, attack: 1000 },
+    };
+
+    const stats = getPresetCombatStats(characterPresetByClassId.cowboy);
+    assert.equal(stats.hp, COMBAT_STAT_MAX);
+    assert.equal(stats.attack, COMBAT_STAT_MAX);
+  } finally {
+    componentById.arms_cowboy = original;
+  }
+
+  const stats = getPresetCombatStats({
+    hat: "hat_cowboy",
+    face: "face_bandana",
+    arms: "arms_cowboy",
+    torso: "torso_cowboy",
+    legs: "legs_boots",
+  });
+  assert.ok(stats.hp >= COMBAT_STAT_MIN);
+  assert.ok(stats.attack >= COMBAT_STAT_MIN);
+});
+
+test("stronger presets shift color weight from blue tiers to rare tiers", () => {
+  const lowPreset = {
+    hat: "hat_cowboy",
+    face: "face_plain",
+    arms: "arms_mage",
+    torso: "torso_cowboy",
+    legs: "legs_boots",
+  };
+  const highPreset = {
+    hat: "hat_mage",
+    face: "face_plain",
+    arms: "arms_cowboy",
+    torso: "torso_mage",
+    legs: "legs_boots",
+  };
+
+  const low = getPresetColorTierWeights(lowPreset);
+  const high = getPresetColorTierWeights(highPreset);
+
+  assert.ok(high.quality > low.quality);
+  assert.ok(high.weights.amber > low.weights.amber);
+  assert.ok(high.weights.reggae > low.weights.reggae);
+  assert.ok(high.weights.palmerin > low.weights.palmerin);
+  assert.ok(high.weights.uncommon < low.weights.uncommon);
+});
+
+test("higher max stat smoothly reduces blue tiers and boosts rare tiers", () => {
+  const belowSeven = {
+    hat: "hat_mage",
+    face: "face_plain",
+    arms: "arms_mage",
+    torso: "torso_cowboy",
+    legs: "legs_boots",
+  }; // 5/6
+  const atLeastSeven = {
+    hat: "hat_mage",
+    face: "face_plain",
+    arms: "arms_warrior",
+    torso: "torso_mage",
+    legs: "legs_boots",
+  }; // 6/7
+  const atLeastNine = {
+    hat: "hat_mage",
+    face: "face_plain",
+    arms: "arms_cowboy",
+    torso: "torso_mage",
+    legs: "legs_boots",
+  }; // 5/9
+
+  const low = getPresetColorTierWeights(belowSeven).weights;
+  const mid = getPresetColorTierWeights(atLeastSeven).weights;
+  const high = getPresetColorTierWeights(atLeastNine).weights;
+
+  const blueLow = low.uncommon + low.rare;
+  const blueMid = mid.uncommon + mid.rare;
+  const blueHigh = high.uncommon + high.rare;
+  assert.ok(blueLow > blueMid);
+  assert.ok(blueMid > blueHigh);
+
+  const rareLow = low.amber + low.reggae + low.palmerin;
+  const rareMid = mid.amber + mid.reggae + mid.palmerin;
+  const rareHigh = high.amber + high.reggae + high.palmerin;
+  assert.ok(rareLow <= rareMid);
+  assert.ok(rareMid < rareHigh);
 });

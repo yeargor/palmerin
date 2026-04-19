@@ -242,6 +242,22 @@ body {
   text-align: left;
 }
 
+.sprite-reggae {
+  background: linear-gradient(
+    180deg,
+    #da251c 0%,
+    #da251c 33.333%,
+    #fff500 33.333%,
+    #fff500 66.666%,
+    #00923f 66.666%,
+    #00923f 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+}
+
 .sprite-main {
   color: inherit;
 }

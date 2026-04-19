@@ -4,6 +4,8 @@ import {
   characterPresetByClassId,
   buildRandomPreset,
   detectPresetDominantBaseClass,
+  getPresetColorTierWeights,
+  getPresetCombatStats,
   renderPresetToSprite,
 } from "./src/sprite-constructor.js";
 
@@ -164,6 +166,7 @@ let latestRenderedSpriteMeta = {
   width: SPRITE_GRID_WIDTH,
   height: SPRITE_MIN_GRID_HEIGHT,
 };
+let currentCombatStats = { hp: 1, attack: 1 };
 
 function getStartParam() {
   const url = new URL(window.location.href);
@@ -263,14 +266,12 @@ const randomClassAdjectives = [
   "Грязный",
   "Шумный",
 ];
-const RANDOM_COLOR_TIERS = [
-  { id: "uncommon", color: "#2f78ff", weight: 42 },
-  { id: "rare", color: "#2f78ff", weight: 30 },
-  { id: "seraph", color: "#f866af", weight: 18 },
-  { id: "amber", color: "#f9970b", weight: 10 },
-];
-const PALMERIN_DROP_CHANCE = 0.005;
-const REGGAE_DROP_CHANCE = 0.005;
+const RANDOM_COLOR_HEX_BY_TIER = {
+  uncommon: "#2f78ff",
+  rare: "#2f78ff",
+  seraph: "#f866af",
+  amber: "#f9970b",
+};
 const specialAdjectiveSet = new Set(["Палмерин", "Регги"]);
 
 function escapeHtml(text) {
@@ -298,9 +299,24 @@ function pickByWeight(weightedItems) {
   return weightedItems[weightedItems.length - 1] || null;
 }
 
-function pickRandomAdjectiveMeta() {
-  const roll = Math.random();
-  if (roll < PALMERIN_DROP_CHANCE) {
+function pickRandomRegularAdjective() {
+  const regularAdjectives = randomClassAdjectives.filter((word) => !specialAdjectiveSet.has(word));
+  return regularAdjectives[Math.floor(Math.random() * regularAdjectives.length)] || "Дикий";
+}
+
+function pickRandomAdjectiveMeta(preset) {
+  const adaptive = getPresetColorTierWeights(preset);
+  const weightedTiers = [
+    { id: "uncommon", weight: adaptive.weights.uncommon },
+    { id: "rare", weight: adaptive.weights.rare },
+    { id: "seraph", weight: adaptive.weights.seraph },
+    { id: "amber", weight: adaptive.weights.amber },
+    { id: "reggae", weight: adaptive.weights.reggae },
+    { id: "palmerin", weight: adaptive.weights.palmerin },
+  ];
+  const selectedTier = pickByWeight(weightedTiers)?.id || "uncommon";
+
+  if (selectedTier === "palmerin") {
     return {
       text: "Палмерин",
       color: "#fe0f0e",
@@ -309,7 +325,7 @@ function pickRandomAdjectiveMeta() {
     };
   }
 
-  if (roll < PALMERIN_DROP_CHANCE + REGGAE_DROP_CHANCE) {
+  if (selectedTier === "reggae") {
     return {
       text: "Регги",
       color: null,
@@ -318,20 +334,16 @@ function pickRandomAdjectiveMeta() {
     };
   }
 
-  const regularAdjectives = randomClassAdjectives.filter((word) => !specialAdjectiveSet.has(word));
-  const adjective =
-    regularAdjectives[Math.floor(Math.random() * regularAdjectives.length)] || "Дикий";
-  const selectedTier = pickByWeight(RANDOM_COLOR_TIERS);
+  const adjective = pickRandomRegularAdjective();
+  const color = RANDOM_COLOR_HEX_BY_TIER[selectedTier] || "#2f78ff";
 
   return {
     text: adjective,
-    color: selectedTier?.color || "#2f78ff",
+    color,
     isReggae: false,
     placeAfterClass: false,
   };
 }
-
-const randomAdjectiveMeta = pickRandomAdjectiveMeta();
 
 const characterNameEl = document.getElementById("characterName");
 const characterMetaEl = document.getElementById("characterMeta");
@@ -677,8 +689,11 @@ function renderHeader() {
   const getLabel = (componentId) => componentNameRuById[componentId] || "Неизвестно";
   const dominantBaseClass = detectPresetDominantBaseClass(preset);
   const dominantBaseClassLabel = baseClassLabelRuById[dominantBaseClass] || "Воин";
+  currentCombatStats = getPresetCombatStats(preset);
+  let randomAdjectiveMeta = null;
 
   if (state.classId === "random") {
+    randomAdjectiveMeta = pickRandomAdjectiveMeta(preset);
     const adjectiveClass = randomAdjectiveMeta.isReggae
       ? "character-name-adjective character-name-adjective-reggae"
       : "character-name-adjective";
@@ -700,15 +715,30 @@ function renderHeader() {
   torsoSlotEl.textContent = `[${getLabel(preset.torso)}]`;
   legsSlotEl.textContent = `[${getLabel(preset.legs)}]`;
 
-  spriteEl.style.color = rarityToCssVar[state.rarity] || "var(--rare)";
+  if (state.classId === "random" && randomAdjectiveMeta) {
+    // For reggae gradient text, use the central stripe color for sprite tint.
+    spriteEl.style.color = randomAdjectiveMeta.isReggae
+      ? "#fff500"
+      : (randomAdjectiveMeta.color || "#2f78ff");
+  } else {
+    spriteEl.style.color = rarityToCssVar[state.rarity] || "var(--rare)";
+  }
   try {
     const rendered = renderPresetToSprite(preset, state.classId);
     latestRenderedSpriteMeta = rendered;
-    spriteEl.innerHTML = `<span class="sprite-grid-content">${rendered.html}</span>`;
+    if (state.classId === "random" && randomAdjectiveMeta?.isReggae) {
+      spriteEl.classList.add("sprite-reggae");
+      spriteEl.textContent = rendered.plainText;
+    } else {
+      spriteEl.classList.remove("sprite-reggae");
+      spriteEl.innerHTML = `<span class="sprite-grid-content">${rendered.html}</span>`;
+    }
   } catch (error) {
     console.error("Sprite preset validation failed:", error);
+    currentCombatStats = getPresetCombatStats(characterPresetByClassId.warrior);
     const rendered = renderPresetToSprite(characterPresetByClassId.warrior, "warrior");
     latestRenderedSpriteMeta = rendered;
+    spriteEl.classList.remove("sprite-reggae");
     spriteEl.innerHTML = `<span class="sprite-grid-content">${rendered.html}</span>`;
   }
 }
@@ -820,7 +850,7 @@ function renderSpriteDebugPanel() {
 function renderStats() {
   statsRowEl.innerHTML = "";
 
-  const stats = [state.stats.hp, state.stats.str];
+  const stats = [`HP ${currentCombatStats.hp}`, `ATTACK ${currentCombatStats.attack}`];
 
   for (const value of stats) {
     const statEl = document.createElement("div");
