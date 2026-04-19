@@ -137,3 +137,5 @@
 скрытые ноги (legs_hidden):
 - anchorPattern: ""
 - anchorTargetIndexes: none
+
+

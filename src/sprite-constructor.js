@@ -24,13 +24,14 @@ export function makeLayer(rowOffset, col, text, className = "sprite-main", zInde
 }
 
 class SpriteComponent {
-  constructor({ id, slot, layers, effects = [], constraints = {}, anchor = null }) {
+  constructor({ id, slot, layers, effects = [], constraints = {}, anchor = null, baseClass = "shared" }) {
     this.id = id;
     this.slot = slot;
     this.layers = Array.isArray(layers) ? layers : [];
     this.effects = Array.isArray(effects) ? effects : [];
     this.constraints = constraints || {};
     this.anchor = anchor;
+    this.baseClass = baseClass;
   }
 }
 
@@ -40,6 +41,7 @@ export const componentById = {
     slot: "hat",
     layers: [makeLayer(0, 4, "/\\")],
     anchor: { pattern: "/\\", targetIndexes: [1, 1] },
+    baseClass: "warrior",
   }),
   hat_mage: new SpriteComponent({
     id: "hat_mage",
@@ -47,12 +49,14 @@ export const componentById = {
     layers: [makeLayer(0, 6, "/\\", "sprite-hat"), makeLayer(1, 3, "__/  \\___", "sprite-hat")],
     effects: [{ type: "shift-slot-anchors", slots: ["face", "arms", "torso", "legs"], dy: 1 }],
     anchor: { pattern: "__/  \\___", targetIndexes: [3, 5] },
+    baseClass: "mage",
   }),
   hat_cowboy: new SpriteComponent({
     id: "hat_cowboy",
     slot: "hat",
     layers: [makeLayer(0, 3, "__/--\\___")],
     anchor: { pattern: "__/--\\___", targetIndexes: [3, 5] },
+    baseClass: "cowboy",
   }),
 
   face_plain: new SpriteComponent({
@@ -66,6 +70,7 @@ export const componentById = {
     slot: "face",
     layers: [makeLayer(0, 3, ">( ·  ·)")],
     anchor: { pattern: ">( ·  ·)", targetIndexes: [3, 5] },
+    baseClass: "cowboy",
   }),
 
   arms_warrior: new SpriteComponent({
@@ -78,12 +83,14 @@ export const componentById = {
       makeLayer(0, 9, "/", "sprite-sword", 2),
     ],
     anchor: { pattern: "<( ^ )>", targetIndexes: [3, 5] },
+    baseClass: "warrior",
   }),
   arms_mage: new SpriteComponent({
     id: "arms_mage",
     slot: "arms",
     layers: [makeLayer(0, 5, "/   \\", "sprite-main", 1)],
     anchor: { pattern: "/   \\", targetIndexes: [0, 4] },
+    baseClass: "shared",
   }),
   arms_mage_mantle_top: new SpriteComponent({
     id: "arms_mage_mantle_top",
@@ -98,6 +105,7 @@ export const componentById = {
       makeLayer(0, 15, ".", "sprite-dust", 2),
     ],
     anchor: { pattern: "/  o\\", targetIndexes: [2, 2] },
+    baseClass: "mage",
   }),
   arms_cowboy: new SpriteComponent({
     id: "arms_cowboy",
@@ -109,6 +117,7 @@ export const componentById = {
       makeLayer(0, 13, "Г‾‾", "sprite-gun", 2),
     ],
     anchor: { pattern: "| _", targetIndexes: [2, 2] },
+    baseClass: "cowboy",
   }),
 
   torso_warrior: new SpriteComponent({
@@ -116,24 +125,28 @@ export const componentById = {
     slot: "torso",
     layers: [makeLayer(0, 2, "/|___|\\")],
     anchor: { pattern: "/|___|\\", targetIndexes: [2, 4] },
+    baseClass: "warrior",
   }),
   torso_mage: new SpriteComponent({
     id: "torso_mage",
     slot: "torso",
     layers: [makeLayer(0, 4, "/_____\\")],
     anchor: { pattern: "/_____\\", targetIndexes: [2, 4] },
+    baseClass: "mage",
   }),
   torso_mage_mantle_bottom: new SpriteComponent({
     id: "torso_mage_mantle_bottom",
     slot: "torso",
     layers: [makeLayer(0, 4, "/__/\\_\\")],
     anchor: { pattern: "/__/\\_\\", targetIndexes: [3, 4] },
+    baseClass: "mage",
   }),
   torso_cowboy: new SpriteComponent({
     id: "torso_cowboy",
     slot: "torso",
     layers: [makeLayer(0, 4, "/+++0+\\")],
     anchor: { pattern: "/+++0+\\", targetIndexes: [2, 4] },
+    baseClass: "cowboy",
   }),
 
   legs_boots: new SpriteComponent({
@@ -175,6 +188,43 @@ export const randomPoolBySlot = {
   torso: ["torso_warrior", "torso_mage", "torso_mage_mantle_bottom", "torso_cowboy"],
   legs: ["legs_boots"],
 };
+
+const BASE_CLASS_IDS = ["mage", "cowboy", "warrior"];
+
+function getComponentBaseClass(componentId) {
+  const component = componentById[componentId];
+  return component?.baseClass || "shared";
+}
+
+export function detectPresetDominantBaseClass(preset) {
+  const counts = { mage: 0, cowboy: 0, warrior: 0 };
+  for (const slot of COMPONENT_SLOTS) {
+    const baseClass = getComponentBaseClass(preset?.[slot]);
+    if (baseClass in counts) {
+      counts[baseClass] += 1;
+    }
+  }
+
+  const maxCount = Math.max(...Object.values(counts));
+  if (maxCount <= 0) {
+    return "warrior";
+  }
+
+  const leaders = BASE_CLASS_IDS.filter((classId) => counts[classId] === maxCount);
+  if (leaders.length === 1) {
+    return leaders[0];
+  }
+
+  const tiebreakerSlots = ["hat", "arms", "torso", "face", "legs"];
+  for (const slot of tiebreakerSlots) {
+    const baseClass = getComponentBaseClass(preset?.[slot]);
+    if (leaders.includes(baseClass)) {
+      return baseClass;
+    }
+  }
+
+  return leaders[0];
+}
 
 function randomFrom(list) {
   return list[Math.floor(Math.random() * list.length)];

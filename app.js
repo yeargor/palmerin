@@ -3,6 +3,7 @@ import {
   SPRITE_MIN_GRID_HEIGHT,
   characterPresetByClassId,
   buildRandomPreset,
+  detectPresetDominantBaseClass,
   renderPresetToSprite,
 } from "./src/sprite-constructor.js";
 
@@ -200,6 +201,137 @@ const state = {
   logs: [...selectedProfile.logs],
 };
 const randomPreset = buildRandomPreset();
+const randomClassAdjectives = [
+  "Перегруженный",
+  "Фуззовый",
+  "Дистортнутый",
+  "Ламповый",
+  "Аналоговый",
+  "Ревербнутый",
+  "Дилейный",
+  "Транзисторный",
+  "Басовый",
+  "Гитарный",
+  "Низкочастотный",
+  "Педальный",
+  "Двухканальный",
+  "Ультразвуковой",
+  "Лоуфайный",
+  "Дабстеп",
+  "Синкопированный",
+  "Виниловый",
+  "Кассетный",
+  "Шугейзный",
+  "Стоунер",
+  "Фьюжн",
+  "Джазовый",
+  "Нейрофанковый",
+  "Гранж",
+  "Хорус",
+  "Фланжерный",
+  "Синтезаторный",
+  "Компрессированный",
+  "Акустический",
+  "Микрофонный",
+  "Бум-бэп",
+  "Хип-хоп",
+  "Блэк-мет",
+  "Кумбийский",
+  "Регги",
+  "Палмерин",
+  "Крафтовый",
+  "Подвальный",
+  "Гаражный",
+  "Барный",
+  "Трехаккордовый",
+  "Разогревочный",
+  "Стейдждайвовый",
+  "Трушный",
+  "Андеграундный",
+  "Гримерный",
+  "Безбашенный",
+  "Прокуренный",
+  "Глухой",
+  "Сорванный",
+  "Отбитый",
+  "Безумный",
+  "Разрывной",
+  "Оглушительный",
+  "Кровожадный",
+  "Эпичный",
+  "Непробиваемый",
+  "Грязный",
+  "Шумный",
+];
+const RANDOM_COLOR_TIERS = [
+  { id: "uncommon", color: "#2f78ff", weight: 42 },
+  { id: "rare", color: "#2f78ff", weight: 30 },
+  { id: "seraph", color: "#f866af", weight: 18 },
+  { id: "amber", color: "#f9970b", weight: 10 },
+];
+const PALMERIN_DROP_CHANCE = 0.005;
+const REGGAE_DROP_CHANCE = 0.005;
+const specialAdjectiveSet = new Set(["Палмерин", "Регги"]);
+
+function escapeHtml(text) {
+  return String(text)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function pickByWeight(weightedItems) {
+  const total = weightedItems.reduce((sum, item) => sum + Math.max(0, Number(item.weight) || 0), 0);
+  if (total <= 0) {
+    return weightedItems[0] || null;
+  }
+
+  let roll = Math.random() * total;
+  for (const item of weightedItems) {
+    roll -= Math.max(0, Number(item.weight) || 0);
+    if (roll <= 0) {
+      return item;
+    }
+  }
+  return weightedItems[weightedItems.length - 1] || null;
+}
+
+function pickRandomAdjectiveMeta() {
+  const roll = Math.random();
+  if (roll < PALMERIN_DROP_CHANCE) {
+    return {
+      text: "Палмерин",
+      color: "#fe0f0e",
+      isReggae: false,
+      placeAfterClass: false,
+    };
+  }
+
+  if (roll < PALMERIN_DROP_CHANCE + REGGAE_DROP_CHANCE) {
+    return {
+      text: "Регги",
+      color: null,
+      isReggae: true,
+      placeAfterClass: false,
+    };
+  }
+
+  const regularAdjectives = randomClassAdjectives.filter((word) => !specialAdjectiveSet.has(word));
+  const adjective =
+    regularAdjectives[Math.floor(Math.random() * regularAdjectives.length)] || "Дикий";
+  const selectedTier = pickByWeight(RANDOM_COLOR_TIERS);
+
+  return {
+    text: adjective,
+    color: selectedTier?.color || "#2f78ff",
+    isReggae: false,
+    placeAfterClass: false,
+  };
+}
+
+const randomAdjectiveMeta = pickRandomAdjectiveMeta();
 
 const characterNameEl = document.getElementById("characterName");
 const characterMetaEl = document.getElementById("characterMeta");
@@ -233,6 +365,12 @@ const componentNameRuById = {
   torso_mage_mantle_bottom: "Мантия колдуна",
   torso_cowboy: "Ремень охотника",
   legs_boots: "Ботинки",
+};
+
+const baseClassLabelRuById = {
+  mage: "Волшебник",
+  cowboy: "Ковбой",
+  warrior: "Воин",
 };
 
 function openProfileSelectorPage() {
@@ -536,9 +674,26 @@ function renderHeader() {
     state.classId === "random"
       ? randomPreset
       : characterPresetByClassId[state.classId] || characterPresetByClassId.warrior;
-  const getLabel = (componentId) => componentNameRuById[componentId] || "неизвестно";
+  const getLabel = (componentId) => componentNameRuById[componentId] || "Неизвестно";
+  const dominantBaseClass = detectPresetDominantBaseClass(preset);
+  const dominantBaseClassLabel = baseClassLabelRuById[dominantBaseClass] || "Воин";
 
-  characterNameEl.textContent = state.name;
+  if (state.classId === "random") {
+    const adjectiveClass = randomAdjectiveMeta.isReggae
+      ? "character-name-adjective character-name-adjective-reggae"
+      : "character-name-adjective";
+    const adjectiveStyle = randomAdjectiveMeta.color
+      ? ` style="--random-adjective-color: ${randomAdjectiveMeta.color};"`
+      : "";
+    const adjectiveHtml = `<span class="${adjectiveClass}"${adjectiveStyle}>${escapeHtml(randomAdjectiveMeta.text)}</span>`;
+    const classHtml = `<span class="character-name-base">${escapeHtml(dominantBaseClassLabel)}</span>`;
+
+    characterNameEl.innerHTML = randomAdjectiveMeta.placeAfterClass
+      ? `${classHtml} ${adjectiveHtml}`
+      : `${adjectiveHtml} ${classHtml}`;
+  } else {
+    characterNameEl.textContent = state.name;
+  }
   characterMetaEl.textContent = `Lv ${state.level} • Rating ${state.rating}`;
   hatSlotEl.textContent = `[${getLabel(preset.hat)}]`;
   armsSlotEl.textContent = `[${getLabel(preset.arms)}]`;

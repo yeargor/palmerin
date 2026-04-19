@@ -121,14 +121,62 @@ body {
 }
 
 .hero-header h1 {
-  margin: 4px 0 0;
+  margin: 0;
   font-size: 18px;
   line-height: 1.2;
   letter-spacing: 0.03em;
 }
 
+.character-name-adjective {
+  --random-adjective-color: var(--text);
+  display: inline-block;
+  font-size: calc(1em + 2px);
+  color: var(--random-adjective-color);
+  transform: rotate(2deg);
+  transform-origin: left center;
+  animation: adjective-breathe-pulse 2.9s ease-in-out infinite;
+}
+
+.character-name-adjective-reggae {
+  color: transparent;
+  background: linear-gradient(
+    180deg,
+    #da251c 0%,
+    #da251c 33.333%,
+    #fff500 33.333%,
+    #fff500 66.666%,
+    #00923f 66.666%,
+    #00923f 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+@keyframes adjective-breathe-pulse {
+  0% {
+    opacity: 0;
+    transform: rotate(2deg) scale(1);
+  }
+  19% {
+    opacity: 1;
+    transform: rotate(2deg) scale(1);
+  }
+  23.2% {
+    opacity: 1;
+    transform: rotate(2deg) scale(1.05);
+  }
+  27.2% {
+    opacity: 1;
+    transform: rotate(2deg) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(2deg) scale(1);
+  }
+}
+
 .hero-header p {
-  margin: 4px 0 0;
+  margin: 7px 0 0;
   font-size: 13px;
   color: var(--muted);
 }

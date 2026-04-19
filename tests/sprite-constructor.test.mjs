@@ -7,6 +7,7 @@ import {
   buildRandomPreset,
   characterPresetByClassId,
   componentById,
+  detectPresetDominantBaseClass,
   renderPresetToSprite,
   validatePresetOrThrow,
 } from "../src/sprite-constructor.js";
@@ -105,4 +106,24 @@ test("random generator always returns slot-valid presets", () => {
     assert.equal(rendered.width, SPRITE_GRID_WIDTH);
     assert.equal(rendered.height >= SPRITE_MIN_GRID_HEIGHT, true);
   }
+});
+
+test("dominant base class is resolved from majority of component classes", () => {
+  const mageMajorityPreset = {
+    hat: "hat_warrior",
+    face: "face_plain",
+    arms: "arms_mage_mantle_top",
+    torso: "torso_mage",
+    legs: "legs_boots",
+  };
+  assert.equal(detectPresetDominantBaseClass(mageMajorityPreset), "mage");
+
+  const cowboyMajorityPreset = {
+    hat: "hat_cowboy",
+    face: "face_bandana",
+    arms: "arms_cowboy",
+    torso: "torso_warrior",
+    legs: "legs_boots",
+  };
+  assert.equal(detectPresetDominantBaseClass(cowboyMajorityPreset), "cowboy");
 });
