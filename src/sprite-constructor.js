@@ -82,16 +82,22 @@ export const componentById = {
   arms_mage: new SpriteComponent({
     id: "arms_mage",
     slot: "arms",
+    layers: [makeLayer(0, 5, "/   \\", "sprite-main", 1)],
+    anchor: { pattern: "/   \\", targetIndexes: [0, 4] },
+  }),
+  arms_mage_mantle_top: new SpriteComponent({
+    id: "arms_mage_mantle_top",
+    slot: "arms",
     layers: [
       makeLayer(-3, 16, ".", "sprite-dust", 2),
       makeLayer(-2, 15, ".", "sprite-dust", 2),
       makeLayer(-1, 14, ".", "sprite-dust", 2),
       makeLayer(-1, 17, ".", "sprite-dust", 2),
-      makeLayer(0, 5, "/   \\ ", "sprite-main", 1),
+      makeLayer(0, 5, "/  o\\", "sprite-main", 1),
       makeLayer(0, 11, "/", "sprite-shield", 2),
       makeLayer(0, 15, ".", "sprite-dust", 2),
     ],
-    anchor: { pattern: "/   \\", targetIndexes: [0, 4] },
+    anchor: { pattern: "/  o\\", targetIndexes: [2, 2] },
   }),
   arms_cowboy: new SpriteComponent({
     id: "arms_cowboy",
@@ -117,6 +123,12 @@ export const componentById = {
     layers: [makeLayer(0, 4, "/_____\\")],
     anchor: { pattern: "/_____\\", targetIndexes: [2, 4] },
   }),
+  torso_mage_mantle_bottom: new SpriteComponent({
+    id: "torso_mage_mantle_bottom",
+    slot: "torso",
+    layers: [makeLayer(0, 4, "/__/\\_\\")],
+    anchor: { pattern: "/__/\\_\\", targetIndexes: [3, 4] },
+  }),
   torso_cowboy: new SpriteComponent({
     id: "torso_cowboy",
     slot: "torso",
@@ -128,12 +140,6 @@ export const componentById = {
     id: "legs_boots",
     slot: "legs",
     layers: [makeLayer(0, 2, "/_/ \\_\\")],
-    anchor: { pattern: "/_/ \\_\\", targetIndexes: [3, 3] },
-  }),
-  legs_boots_offset: new SpriteComponent({
-    id: "legs_boots_offset",
-    slot: "legs",
-    layers: [makeLayer(0, 4, "/_/ \\_\\")],
     anchor: { pattern: "/_/ \\_\\", targetIndexes: [3, 3] },
   }),
 };
@@ -149,8 +155,8 @@ export const characterPresetByClassId = {
   mage: {
     hat: "hat_mage",
     face: "face_plain",
-    arms: "arms_mage",
-    torso: "torso_mage",
+    arms: "arms_mage_mantle_top",
+    torso: "torso_mage_mantle_bottom",
     legs: "legs_boots",
   },
   cowboy: {
@@ -158,16 +164,16 @@ export const characterPresetByClassId = {
     face: "face_bandana",
     arms: "arms_cowboy",
     torso: "torso_cowboy",
-    legs: "legs_boots_offset",
+    legs: "legs_boots",
   },
 };
 
 export const randomPoolBySlot = {
   hat: ["hat_warrior", "hat_mage", "hat_cowboy"],
   face: ["face_plain", "face_bandana"],
-  arms: ["arms_warrior", "arms_mage", "arms_cowboy"],
-  torso: ["torso_warrior", "torso_mage", "torso_cowboy"],
-  legs: ["legs_boots", "legs_boots_offset"],
+  arms: ["arms_warrior", "arms_mage", "arms_mage_mantle_top", "arms_cowboy"],
+  torso: ["torso_warrior", "torso_mage", "torso_mage_mantle_bottom", "torso_cowboy"],
+  legs: ["legs_boots"],
 };
 
 function randomFrom(list) {

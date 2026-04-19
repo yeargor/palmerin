@@ -203,9 +203,10 @@ const randomPreset = buildRandomPreset();
 
 const characterNameEl = document.getElementById("characterName");
 const characterMetaEl = document.getElementById("characterMeta");
-const leftHandEl = document.getElementById("leftHand");
-const rightHandEl = document.getElementById("rightHand");
-const bodySlotEl = document.getElementById("bodySlot");
+const hatSlotEl = document.getElementById("hatSlot");
+const armsSlotEl = document.getElementById("armsSlot");
+const torsoSlotEl = document.getElementById("torsoSlot");
+const legsSlotEl = document.getElementById("legsSlot");
 const statsRowEl = document.getElementById("statsRow");
 const logContainerEl = document.getElementById("logContainer");
 const logListEl = document.getElementById("logList");
@@ -218,6 +219,21 @@ const logoEl = document.querySelector(".game-logo");
 const closeAsciiBtnEl = document.getElementById("closeAsciiBtn");
 let character = null;
 let replyTypewriter = null;
+
+const componentNameRuById = {
+  hat_warrior: "Шлем",
+  hat_mage: "Шляпа волшебника",
+  hat_cowboy: "Ковбойская шляпа",
+  arms_warrior: "Щит и меч",
+  arms_mage: "Рубаха",
+  arms_mage_mantle_top: "Магическое ожерелье",
+  arms_cowboy: "Револьверы",
+  torso_warrior: "Кираса",
+  torso_mage: "Мантия",
+  torso_mage_mantle_bottom: "Мантия колдуна",
+  torso_cowboy: "Ремень охотника",
+  legs_boots: "Ботинки",
+};
 
 function openProfileSelectorPage() {
   const url = new URL(window.location.href);
@@ -516,18 +532,21 @@ class ReplyTypewriter {
 }
 
 function renderHeader() {
+  const preset =
+    state.classId === "random"
+      ? randomPreset
+      : characterPresetByClassId[state.classId] || characterPresetByClassId.warrior;
+  const getLabel = (componentId) => componentNameRuById[componentId] || "неизвестно";
+
   characterNameEl.textContent = state.name;
   characterMetaEl.textContent = `Lv ${state.level} • Rating ${state.rating}`;
-  leftHandEl.textContent = `[${state.equipment.leftHand}]`;
-  rightHandEl.textContent = `[${state.equipment.rightHand}]`;
-  bodySlotEl.textContent = `[${state.equipment.body}]`;
+  hatSlotEl.textContent = `[${getLabel(preset.hat)}]`;
+  armsSlotEl.textContent = `[${getLabel(preset.arms)}]`;
+  torsoSlotEl.textContent = `[${getLabel(preset.torso)}]`;
+  legsSlotEl.textContent = `[${getLabel(preset.legs)}]`;
 
   spriteEl.style.color = rarityToCssVar[state.rarity] || "var(--rare)";
   try {
-    const preset =
-      state.classId === "random"
-        ? randomPreset
-        : characterPresetByClassId[state.classId] || characterPresetByClassId.warrior;
     const rendered = renderPresetToSprite(preset, state.classId);
     latestRenderedSpriteMeta = rendered;
     spriteEl.innerHTML = `<span class="sprite-grid-content">${rendered.html}</span>`;

@@ -1,0 +1,52 @@
+components catalog (from src/sprite-constructor.js)
+
+slot: hat
+- id: hat_warrior (шлем)
+  layer: "/\"
+- id: hat_mage (шляпа волшебника)
+  layer: "/\"
+  layer: "__/  \___"
+- id: hat_cowboy (ковбойская шляпа)
+  layer: "__/--\___"
+
+slot: face
+- id: face_plain
+  layer: "( ·  ·)"
+- id: face_bandana
+  layer: ">( ·  ·)"
+
+slot: arms
+- id: arms_warrior (щит и меч)
+  layer: "/"
+  layer: "<( ^ )>"
+  layer: "\"
+  layer: "/"
+- id: arms_mage (рубаха)
+  layer: "/   \"
+- id: arms_mage_mantle_top (магическое ожерелье)
+  layer: "."
+  layer: "."
+  layer: "."
+  layer: "."
+  layer: "/  o\"
+  layer: "/"
+  layer: "."
+- id: arms_cowboy (револьверы)
+  layer: "| _"
+  layer: "Г‾‾"
+  layer: "_"
+  layer: "Г‾‾"
+
+slot: torso
+- id: torso_warrior (кираса)
+  layer: "/|___|\"
+- id: torso_mage
+  layer: "/_____\" (мантия)
+- id: torso_mage_mantle_bottom
+  layer: "/__/\_\" (мантия колдуна)
+- id: torso_cowboy
+  layer: "/+++0+\" (ремень охотника)
+
+slot: legs
+- id: legs_boots (ботинки)
+  layer: "/_/ \_\"
