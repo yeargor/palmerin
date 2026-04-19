@@ -1,5 +1,6 @@
 export const SPRITE_GRID_WIDTH = 24;
-export const SPRITE_MIN_GRID_HEIGHT = 6;
+export const SPRITE_MIN_GRID_HEIGHT = 7;
+export const SPRITE_BOTTOM_PADDING_ROWS = 1;
 export const COMPONENT_SLOTS = ["hat", "face", "arms", "torso", "legs"];
 
 const BASE_SLOT_ANCHOR_ROW = {
@@ -135,12 +136,6 @@ export const componentById = {
     layers: [makeLayer(0, 4, "/_/ \\_\\")],
     anchor: { pattern: "/_/ \\_\\", targetIndexes: [3, 3] },
   }),
-  legs_hidden: new SpriteComponent({
-    id: "legs_hidden",
-    slot: "legs",
-    layers: [],
-    anchor: null,
-  }),
 };
 
 export const characterPresetByClassId = {
@@ -156,7 +151,7 @@ export const characterPresetByClassId = {
     face: "face_plain",
     arms: "arms_mage",
     torso: "torso_mage",
-    legs: "legs_hidden",
+    legs: "legs_boots",
   },
   cowboy: {
     hat: "hat_cowboy",
@@ -172,7 +167,7 @@ export const randomPoolBySlot = {
   face: ["face_plain", "face_bandana"],
   arms: ["arms_warrior", "arms_mage", "arms_cowboy"],
   torso: ["torso_warrior", "torso_mage", "torso_cowboy"],
-  legs: ["legs_boots", "legs_boots_offset", "legs_hidden"],
+  legs: ["legs_boots", "legs_boots_offset"],
 };
 
 function randomFrom(list) {
@@ -298,6 +293,16 @@ function normalizeOps(ops, profileClassId) {
   return ops.map((op) => ({ ...op, row: op.row + dy }));
 }
 
+function alignOpsToBottom(ops, height) {
+  if (!ops.length) {
+    return ops;
+  }
+  const bounds = getBounds(ops);
+  const targetBottomRow = height - 1 - SPRITE_BOTTOM_PADDING_ROWS;
+  const dy = targetBottomRow - bounds.maxRow;
+  return ops.map((op) => ({ ...op, row: op.row + dy }));
+}
+
 function layerNonSpaceBounds(layer) {
   let minCol = Infinity;
   let maxCol = -Infinity;
@@ -392,11 +397,11 @@ function renderRowHtml(cells) {
 export function renderPresetToSprite(preset, profileClassId = "warrior") {
   validatePresetOrThrow(preset);
   const normalizedOps = normalizeOps(collectOps(preset), profileClassId);
-  const bounds = getBounds(normalizedOps);
-  const height = bounds ? Math.max(SPRITE_MIN_GRID_HEIGHT, bounds.maxRow + 1) : SPRITE_MIN_GRID_HEIGHT;
+  const height = SPRITE_MIN_GRID_HEIGHT;
+  const alignedOps = alignOpsToBottom(normalizedOps, height);
   const grid = createGrid(SPRITE_GRID_WIDTH, height);
 
-  const sortedOps = [...normalizedOps].sort((a, b) => a.zIndex - b.zIndex);
+  const sortedOps = [...alignedOps].sort((a, b) => a.zIndex - b.zIndex);
   for (const op of sortedOps) {
     if (op.row < 0 || op.row >= height || op.col < 0 || op.col >= SPRITE_GRID_WIDTH) {
       continue;

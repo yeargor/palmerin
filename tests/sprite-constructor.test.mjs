@@ -72,7 +72,7 @@ test("default presets render with unified width and minimum height", () => {
   }
 });
 
-test("renderer auto-grows beyond minimum height when needed", () => {
+test("renderer keeps fixed grid height", () => {
   const original = componentById.legs_boots;
   try {
     componentById.legs_boots = {
@@ -88,7 +88,7 @@ test("renderer auto-grows beyond minimum height when needed", () => {
       legs: "legs_boots",
     };
     const rendered = renderPresetToSprite(preset, "random");
-    assert.equal(rendered.height > SPRITE_MIN_GRID_HEIGHT, true);
+    assert.equal(rendered.height, SPRITE_MIN_GRID_HEIGHT);
   } finally {
     componentById.legs_boots = original;
   }
