@@ -8,6 +8,7 @@ import {
   getPresetCombatStats,
   renderPresetToSprite,
 } from "./src/sprite-constructor.js";
+import { CHARACTER_QUOTES } from "./src/character-quotes.js";
 
 const tg = window.Telegram?.WebApp;
 
@@ -36,11 +37,8 @@ const profileByParam = {
       body: "Empty",
     },
     logs: [
-      { time: "21:00", type: "info", text: "arena entry" },
-      { time: "21:05", type: "event", text: "bar detour" },
-    ],
-    replies: [
-      { classId: "warrior", logType: "event", text: "Steel first always" },
+      { time: "21:00", type: "system", text: "arena entry" },
+      { time: "21:05", type: "combat", combatResult: "victory", text: "победа: щит выдержал" },
     ],
   },
   ghost: {
@@ -62,11 +60,8 @@ const profileByParam = {
       body: "Patch Vest",
     },
     logs: [
-      { time: "21:02", type: "info", text: "crowd scan" },
-      { time: "21:06", type: "event", text: "quick dodge" },
-    ],
-    replies: [
-      { classId: "warrior", logType: "event", text: "Steel first always" },
+      { time: "21:02", type: "system", text: "crowd scan" },
+      { time: "21:06", type: "combat", combatResult: "defeat", text: "поражение: позиция потеряна" },
     ],
   },
   mage: {
@@ -88,10 +83,9 @@ const profileByParam = {
       body: "Cloth Hood",
     },
     logs: [
-      { time: "21:03", type: "info", text: "mana check" },
-      { time: "21:07", type: "event", text: "rune whisper" },
+      { time: "21:03", type: "system", text: "mana check" },
+      { time: "21:07", type: "combat", combatResult: "victory", text: "победа: серия точна" },
     ],
-    replies: [{ classId: "mage", logType: "event", text: "Arcane flow stable" }],
   },
   cowboy: {
     id: 99,
@@ -112,10 +106,9 @@ const profileByParam = {
       body: "Dust Poncho",
     },
     logs: [
-      { time: "21:04", type: "info", text: "saloon watch" },
-      { time: "21:08", type: "event", text: "dual draw" },
+      { time: "21:04", type: "system", text: "saloon watch" },
+      { time: "21:08", type: "combat", combatResult: "defeat", text: "поражение: патроны кончились" },
     ],
-    replies: [{ classId: "cowboy", logType: "event", text: "Keep your hands visible" }],
   },
   random: {
     id: 111,
@@ -136,22 +129,149 @@ const profileByParam = {
       body: "Mixed Outfit",
     },
     logs: [
-      { time: "21:09", type: "info", text: "parts shuffled" },
-      { time: "21:10", type: "event", text: "build locked" },
+      { time: "21:09", type: "system", text: "Концерт начался!" },
     ],
-    replies: [{ classId: "random", logType: "event", text: "Loadout is unstable" }],
   },
 };
 
-const logPool = [
-  "light hit",
-  "missed attack",
-  "found loot",
-  "guard stance",
-  "quick step",
-  "power swing",
-  "target locked",
-];
+const logPoolByType = {
+  system: ["arena sync", "match queue ready", "signal stable"],
+  drop: ["new item drop", "rare salvage found", "loot secured"],
+  levelup: ["level increased", "inventory upgraded", "power node unlocked"],
+};
+const combatOutcomePhrases = {
+  victory: [
+    "Разнёс танцпол",
+    "Отправил на бар",
+    "Выдал соло",
+    "Прыгнул со сцены",
+    "Сломал стойку микрофона",
+    "Вызвал на бис",
+    "Оглушил дисторшном",
+    "Допил чужое пиво",
+    "Забрал пиво",
+    "Переорал комбик",
+    "Заглушил фуззом",
+    "Пробил фанеру",
+    "Пережил жесткий слэм",
+    "Забрал микрофон",
+    "Взорвал колонки",
+    "Поймал медиатор",
+    "Выдал брейкдаун",
+    "Сфоткал сетлист",
+    "Раскачал толпу",
+    "Раздал стиля",
+    "Ушел в отрыв",
+    "Вырвал джек",
+    "Услышал басиста",
+    "Попал в ритм",
+    "Забрал последний шот",
+    "Пробил стену звука",
+    "Выдержал стейдждайв",
+    "Залез на комбик",
+    "Порвал струны",
+    "Прыгнул в толпу",
+    "Оглушил басом",
+    "Разогнал мошпит",
+    "Прошел фейсконтроль",
+    "Покорил бэкстейдж",
+    "Разбил гитару",
+    "Сорвал голос",
+    "Перепел вокалиста",
+    "Пробил барабаны",
+    "Включил овердрайв",
+    "Порвал майку",
+    "Раздал автографы",
+    "Занял первый ряд",
+    "Придумал рифф",
+    "Спас пиво",
+    "Выиграл проходку",
+    "Снёс двери в толчек",
+    "Поймал палочку",
+    "Заглушил фидбэк",
+    "Поплыл по рукам",
+    "Разбудил соседей",
+    "Сломал тарелку",
+    "Перепил бармена",
+    "Оглушил весь зал",
+    "Разнёс гримёрку",
+    "Выдал соло",
+    "Сломал монитор",
+    "Залез на колонку",
+    "Сыграл на бис",
+    "Врубил дилей",
+    "Устроил ад",
+    "Задал ровный ритм",
+    "Посчитал под метроном",
+    "Прошел без билета",
+    "Разбудил звукача",
+    "Спалил усилитель"
+  ],
+  defeat: [
+    "Упал в слэме",
+    "Пролил пиво",
+    "Порвалась струна",
+    "Не попал в бит",
+    "Уснул за баром",
+    "Оглушило фидбэком",
+    "Забыл текст песни",
+    "Выгнали из клуба",
+    "Сбежал на курилку",
+    "Потерял медиатор",
+    "Не прошел фейсконтроль",
+    "Отключили от пульта",
+    "Наступили на педаль",
+    "Уронил стакан",
+    "Выронил палочки",
+    "Оттоптали ноги",
+    "Наступили на провод",
+    "Залил пульт пивом",
+    "Сгорели лампы",
+    "Порвал кеды",
+    "Завалил кардан",
+    "Ошибся в припеве",
+    "Ушел к звукачу",
+    "Застрял в толпе",
+    "Выгнали с бэкстейджа",
+    "Пластмассовый мир победил",
+    "Порвал ремень гитары",
+    "Получил пустым стаканом",
+    "Потерял правый ботинок",
+    "Опоздал на репу",
+    "Застрял в туалете",
+    "Оглушило монитором",
+    "Забыл беруши",
+    "Уснул на колонке",
+    "Получил локтем",
+    "Влетел в стойку",
+    "Сломал очки",
+    "Не хватило денег",
+    "Выключился комбик",
+    "Села батарейка в педали",
+    "Наступил в лужу",
+    "Получил по носу",
+    "Споткнулся о провод",
+    "Запутался в проводах",
+    "Упал со сцены",
+    "Облили пивом",
+    "Выгнал охранник",
+    "Забыл главную мелодию",
+    "Уронил медиатор",
+    "Задохнулся в мошпите",
+    "Порвал джинсы",
+    "Поскользнулся на танцполе",
+    "Вырвало джек гитары",
+    "Перепутал аккорды",
+    "Уронил гитару",
+    "Разбил педальборд",
+    "Унесли на руках",
+    "Упал в обморок",
+    "Оглох на правое",
+    "Оглох на левое",
+    "Не поймал ритм",
+    "Уснул под сценой",
+  ]
+};
 
 const rarityToCssVar = {
   common: "var(--common)",
@@ -299,6 +419,26 @@ function pickByWeight(weightedItems) {
   return weightedItems[weightedItems.length - 1] || null;
 }
 
+function pickRandomFrom(items, fallback = "") {
+  if (!Array.isArray(items) || !items.length) {
+    return fallback;
+  }
+  return items[Math.floor(Math.random() * items.length)] || fallback;
+}
+
+function buildCombatLogText() {
+  const isVictory = Math.random() >= 0.5;
+  const combatResult = isVictory ? "victory" : "defeat";
+  const outcomeLabel = isVictory ? "победа" : "поражение";
+  const phrase = isVictory
+    ? pickRandomFrom(combatOutcomePhrases.victory, "удар прошел")
+    : pickRandomFrom(combatOutcomePhrases.defeat, "удар смазан");
+  return {
+    combatResult,
+    text: `${outcomeLabel}: ${phrase}`,
+  };
+}
+
 function pickRandomRegularAdjective() {
   const regularAdjectives = randomClassAdjectives.filter((word) => !specialAdjectiveSet.has(word));
   return regularAdjectives[Math.floor(Math.random() * regularAdjectives.length)] || "Дикий";
@@ -436,22 +576,22 @@ function renderProfileSelectorPage() {
 }
 
 class CharacterEntity {
-  constructor({ id, classId, replies }) {
+  constructor({ id, classId, quotePoolByType }) {
     this.id = id;
     this.classId = classId;
-    this.replies = Array.isArray(replies) ? replies : [];
+    this.quotePoolByType = quotePoolByType || {};
   }
 
-  getReplyForLogType(logType) {
-    const classAndType = this.replies.find(
-      (reply) => reply.classId === this.classId && reply.logType === logType,
-    );
-    if (classAndType) {
-      return classAndType.text;
+  getReplyForLog(logItem) {
+    const type = logItem?.type || "system";
+    let quoteType = type;
+
+    if (type === "combat") {
+      quoteType = logItem?.combatResult === "defeat" ? "defeat" : "victory";
     }
 
-    const classFallback = this.replies.find((reply) => reply.classId === this.classId);
-    return classFallback?.text || "";
+    const pool = this.quotePoolByType[quoteType] || this.quotePoolByType.system || [];
+    return pickRandomFrom(pool, "");
   }
 }
 
@@ -502,6 +642,12 @@ class ReplyTypewriter {
 
   randomPauseDelay() {
     return this.randomInt(this.minPauseMs, this.maxPauseMs);
+  }
+
+  normalizeForWordWrap(text) {
+    const safeText = String(text || "");
+    // Keep one-letter words with the next word so a single symbol does not hang on line end.
+    return safeText.replace(/\b([A-Za-zА-Яа-яЁё])\s+(?=\S)/g, "$1\u00A0");
   }
 
   buildPausePlan(textLength) {
@@ -597,6 +743,40 @@ class ReplyTypewriter {
     this.timer = window.setTimeout(this.step, delay);
   }
 
+  escapeHtml(text) {
+    return String(text)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
+
+  formatQuoteHtml(text) {
+    const source = String(text || "");
+    const quoteRegex = /"([^"]+)"/g;
+    let html = "";
+    let lastIndex = 0;
+
+    for (const match of source.matchAll(quoteRegex)) {
+      const fullMatch = match[0];
+      const quotedText = match[1];
+      const index = match.index || 0;
+
+      html += this.escapeHtml(source.slice(lastIndex, index));
+      html += `&quot;<span class="fighter-quote-em">${this.escapeHtml(quotedText)}</span>&quot;`;
+      lastIndex = index + fullMatch.length;
+    }
+
+    html += this.escapeHtml(source.slice(lastIndex));
+    return html;
+  }
+
+  setQuoteText(text) {
+    if (!this.textEl) {
+      return;
+    }
+    this.textEl.innerHTML = this.formatQuoteHtml(text);
+  }
+
   startTyping(text) {
     if (!this.ensureQuoteNodes()) {
       return;
@@ -604,11 +784,11 @@ class ReplyTypewriter {
 
     this.clearTimer();
     this.mode = "typing";
-    this.currentText = text || "";
+    this.currentText = this.normalizeForWordWrap(text);
     this.currentIndex = 0;
     this.stepIndex = 0;
     this.buildPausePlan(this.currentText.length);
-    this.textEl.textContent = "";
+    this.setQuoteText("");
     this.step();
   }
 
@@ -629,7 +809,7 @@ class ReplyTypewriter {
     this.currentText = visibleText;
     this.currentIndex = visibleText.length;
     this.stepIndex = 0;
-    this.nextText = nextText || "";
+    this.nextText = this.normalizeForWordWrap(nextText);
     this.buildPausePlan(this.currentText.length);
     this.step();
   }
@@ -645,8 +825,8 @@ class ReplyTypewriter {
         return;
       }
 
-      this.textEl.textContent += this.currentText[this.currentIndex];
       this.currentIndex += 1;
+      this.setQuoteText(this.currentText.slice(0, this.currentIndex));
       if (typeof this.onUpdate === "function") {
         this.onUpdate();
       }
@@ -665,7 +845,7 @@ class ReplyTypewriter {
       }
 
       this.currentIndex -= 1;
-      this.textEl.textContent = this.currentText.slice(0, this.currentIndex);
+      this.setQuoteText(this.currentText.slice(0, this.currentIndex));
       if (typeof this.onUpdate === "function") {
         this.onUpdate();
       }
@@ -728,7 +908,11 @@ function renderHeader() {
     latestRenderedSpriteMeta = rendered;
     if (state.classId === "random" && randomAdjectiveMeta?.isReggae) {
       spriteEl.classList.add("sprite-reggae");
-      spriteEl.textContent = rendered.plainText;
+      spriteEl.innerHTML = '<span class="sprite-grid-content sprite-grid-content-plain sprite-reggae-text"></span>';
+      const textLayerEl = spriteEl.querySelector(".sprite-grid-content-plain");
+      if (textLayerEl) {
+        textLayerEl.textContent = rendered.plainText;
+      }
     } else {
       spriteEl.classList.remove("sprite-reggae");
       spriteEl.innerHTML = `<span class="sprite-grid-content">${rendered.html}</span>`;
@@ -869,6 +1053,11 @@ function renderLogs() {
   for (const [index, item] of state.logs.entries()) {
     const row = document.createElement("li");
     row.className = "log-item";
+    const logType = item.type || "system";
+    row.classList.add(`log-${logType}`);
+    if (logType === "combat" && item.combatResult) {
+      row.classList.add(`log-combat-${item.combatResult}`);
+    }
     if (index === state.logs.length - 1) {
       row.classList.add("log-newest");
     }
@@ -893,19 +1082,31 @@ function pushRandomLog() {
     return;
   }
 
-  const randomText = logPool[Math.floor(Math.random() * logPool.length)];
+  const weightedTypes = [
+    { id: "combat", weight: 0.52 },
+    { id: "system", weight: 0.2 },
+    { id: "drop", weight: 0.2 },
+    { id: "levelup", weight: 0.08 },
+  ];
+  const selectedType = pickByWeight(weightedTypes)?.id || "combat";
+  const combatMeta = selectedType === "combat" ? buildCombatLogText() : null;
+  const randomText =
+    selectedType === "combat"
+      ? combatMeta.text
+      : pickRandomFrom(logPoolByType[selectedType] || logPoolByType.system, "signal stable");
 
   state.logs.push({
     time: nowTime(),
-    type: "event",
+    type: selectedType,
+    ...(combatMeta ? { combatResult: combatMeta.combatResult } : {}),
     text: randomText,
   });
   state.logs = state.logs.slice(-5);
 
   renderLogs();
 
-  const lastLogType = state.logs[state.logs.length - 1]?.type || "info";
-  const nextReply = character.getReplyForLogType(lastLogType);
+  const lastLog = state.logs[state.logs.length - 1] || { type: "system" };
+  const nextReply = character.getReplyForLog(lastLog);
   replyTypewriter.eraseAndType(nextReply);
 }
 
@@ -969,10 +1170,10 @@ if (isProfileSelectorMode()) {
   character = new CharacterEntity({
     id: state.id,
     classId: state.classId || "warrior",
-    replies: state.replies || [],
+    quotePoolByType: CHARACTER_QUOTES,
   });
-  const lastLogType = state.logs[state.logs.length - 1]?.type || "info";
-  const initialReply = character.getReplyForLogType(lastLogType);
+  const lastLog = state.logs[state.logs.length - 1] || { type: "system" };
+  const initialReply = character.getReplyForLog(lastLog);
   replyTypewriter = new ReplyTypewriter({
     targetEl: fighterQuoteEl,
     onUpdate: centerFighterToViewport,

@@ -242,7 +242,15 @@ body {
   text-align: left;
 }
 
+.sprite-grid-content-plain {
+  white-space: pre;
+}
+
 .sprite-reggae {
+  color: var(--text);
+}
+
+.sprite-reggae-text {
   background: linear-gradient(
     180deg,
     #da251c 0%,
@@ -320,6 +328,7 @@ body {
   border-left: 2px solid #2a2a2a;
   padding-left: 8px;
   font-size: 13px;
+  color: var(--text);
 }
 
 .log-time {
@@ -329,6 +338,23 @@ body {
 
 .log-newest {
   border-left-color: var(--accent);
+}
+
+.log-system {
+  color: #f3f3f3;
+}
+
+.log-combat {
+  color: var(--accent);
+}
+
+.log-combat-victory {
+  color: #4eb665;
+}
+
+.log-drop,
+.log-levelup {
+  color: #f7b548;
 }
 
 .fighter-stage {
@@ -350,19 +376,27 @@ body {
   position: absolute;
   top: 8px;
   left: 12px;
-  max-width: none;
+  right: 12px;
+  max-width: calc(100% - 24px);
   color: var(--text);
   font-size: clamp(14px, 3.4vw, 19px);
   line-height: 1.2;
   letter-spacing: 0.01em;
-  white-space: nowrap;
-  overflow: hidden;
+  white-space: normal;
+  overflow: visible;
+  word-break: normal;
+  overflow-wrap: normal;
+  hyphens: none;
   z-index: 2;
   pointer-events: none;
 }
 
 .fighter-quote-text {
   display: inline;
+}
+
+.fighter-quote-em {
+  font-style: italic;
 }
 
 .fighter-quote-cursor {
