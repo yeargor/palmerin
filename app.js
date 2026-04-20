@@ -17,7 +17,7 @@ if (tg) {
   tg.expand();
 }
 
-const baseProfileByParam = {
+const profileTemplateByParam = {
   club: {
     id: 42,
     classId: "warrior",
@@ -324,17 +324,37 @@ function isAdminMode() {
   return url.searchParams.get("view") === "admin";
 }
 
+function getRequestedUserId() {
+  const url = new URL(window.location.href);
+  const raw = url.searchParams.get("user");
+  if (!raw) {
+    return null;
+  }
+  const parsed = Number.parseInt(raw, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 const randomPreset = buildRandomPreset();
-const runtimeStore = loadRuntimeStore();
-const profileByParam = runtimeStore.profiles;
 const requestedProfileParam = getStartParam();
-const activeProfileParam = profileByParam[requestedProfileParam] ? requestedProfileParam : "club";
-const selectedProfile = profileByParam[activeProfileParam];
+const requestedUserId = getRequestedUserId();
+const runtimeStore = loadRuntimeStore(requestedProfileParam);
+const selectedUser = pickActiveUser(runtimeStore, requestedUserId, requestedProfileParam);
+const selectedTemplateKey = profileTemplateByParam[requestedProfileParam] ? requestedProfileParam : "club";
+const selectedSession = selectedUser || createUserFromTemplate(selectedTemplateKey, 0, false);
 const spriteDebugMode = isSpriteDebugMode();
 const state = {
-  ...selectedProfile,
-  logs: [...(selectedProfile.logs || [])].slice(-5),
+  id: selectedSession.id,
+  userId: selectedUser ? selectedSession.id : null,
+  templateKey: selectedSession.templateKey || selectedTemplateKey,
+  classId: selectedSession.classId,
+  name: selectedSession.name,
+  level: selectedSession.level,
+  rating: selectedSession.rating || 0,
+  rarity: selectedSession.rarity || "rare",
+  logs: [...(selectedSession.logs || [])].slice(-5),
 };
+const activeUserId = state.userId;
+const hasActiveRuntimeUser = Number.isFinite(activeUserId);
 const randomClassAdjectives = [
   "Перегруженный",
   "Фуззовый",
@@ -437,24 +457,40 @@ function pickRandomFrom(items, fallback = "") {
   return items[Math.floor(Math.random() * items.length)] || fallback;
 }
 
-function cloneProfiles(source) {
-  return Object.fromEntries(
-    Object.entries(source).map(([key, profile]) => [
-      key,
-      {
-        ...profile,
-        logs: [...(profile.logs || [])],
-      },
-    ]),
-  );
-}
-
 function safeParseJson(rawValue) {
   try {
     return JSON.parse(rawValue);
   } catch {
     return null;
   }
+}
+
+function buildInitialSystemLogs(template) {
+  const systemLogs = [...(template?.logs || [])].filter((item) => item?.type === "system");
+  if (systemLogs.length > 0) {
+    return [systemLogs[0]];
+  }
+  return [{ time: nowTime(), type: "system", text: "arena sync" }];
+}
+
+function createUserFromTemplate(templateKey, userId, createdByAdmin = true) {
+  const template = profileTemplateByParam[templateKey] || profileTemplateByParam.club;
+  return {
+    id: userId,
+    templateKey,
+    classId: template.classId,
+    name: userId > 0 ? `${template.name} #${userId}` : template.name,
+    level: Math.max(1, Number(template.level) || 1),
+    rating: Math.max(0, Number(template.rating) || 0),
+    rarity: template.rarity || "rare",
+    logs: buildInitialSystemLogs(template),
+    createdByAdmin: Boolean(createdByAdmin),
+  };
+}
+
+function buildDefaultUsers(initialTemplateKey = "club") {
+  void initialTemplateKey;
+  return [];
 }
 
 function computeBattlePower(level, hp, attack) {
@@ -464,29 +500,28 @@ function computeBattlePower(level, hp, attack) {
   return (safeAttack / (safeHp + BATTLE_POWER_K)) + (safeHp / (safeAttack + BATTLE_POWER_K)) + (BATTLE_W_LVL * safeLevel);
 }
 
-function buildProfilePreset(profile) {
-  if (!profile) {
+function buildProfilePreset(user) {
+  if (!user) {
     return characterPresetByClassId.warrior;
   }
-  if (profile.classId === "random") {
+  if (user.classId === "random") {
     return randomPreset;
   }
-  return characterPresetByClassId[profile.classId] || characterPresetByClassId.warrior;
+  return characterPresetByClassId[user.classId] || characterPresetByClassId.warrior;
 }
 
-function buildLeaderboardEntries(profilesByKey) {
-  const entries = Object.entries(profilesByKey).map(([key, profile]) => {
-    const preset = buildProfilePreset(profile);
+function buildLeaderboardEntries(users) {
+  const entries = users.map((user) => {
+    const preset = buildProfilePreset(user);
     const combatStats = getPresetCombatStats(preset);
     const hp = Math.max(1, Number(combatStats.hp) || 1);
     const attack = Math.max(1, Number(combatStats.attack) || 1);
-    const level = Number(profile.level) || 1;
+    const level = Number(user.level) || 1;
     const power = computeBattlePower(level, hp, attack);
     return {
-      key,
-      id: profile.id,
-      classId: profile.classId,
-      name: profile.name,
+      userId: user.id,
+      classId: user.classId,
+      name: user.name,
       level,
       hp,
       attack,
@@ -494,90 +529,184 @@ function buildLeaderboardEntries(profilesByKey) {
     };
   });
 
-  entries.sort((a, b) => b.power - a.power || b.level - a.level || b.attack - a.attack || a.id - b.id);
+  entries.sort((a, b) => b.power - a.power || b.level - a.level || b.attack - a.attack || a.userId - b.userId);
   return entries.map((entry, index) => ({
     ...entry,
     rating: index + 1,
   }));
 }
 
-function applyRatingsFromLeaderboard(profilesByKey, leaderboardEntries) {
-  for (const entry of leaderboardEntries) {
-    const profile = profilesByKey[entry.key];
-    if (!profile) {
-      continue;
-    }
-    profile.rating = entry.rating;
+function applyRatingsFromLeaderboard(users, leaderboardEntries) {
+  const ratingByUserId = new Map(leaderboardEntries.map((entry) => [entry.userId, entry.rating]));
+  for (const user of users) {
+    user.rating = ratingByUserId.get(user.id) || user.rating || 0;
   }
 }
 
-function loadRuntimeStore() {
-  const profiles = cloneProfiles(baseProfileByParam);
+function migrateLegacyProfilesToUsers(legacyProfiles) {
+  const users = [];
+  let nextId = 1;
+  for (const [legacyKey, legacyProfile] of Object.entries(legacyProfiles || {})) {
+    if (!legacyProfile || typeof legacyProfile !== "object") {
+      continue;
+    }
+    const templateKey = profileTemplateByParam[legacyKey] ? legacyKey : "club";
+    users.push({
+      id: nextId,
+      templateKey,
+      classId: legacyProfile.classId || profileTemplateByParam[templateKey].classId,
+      name: legacyProfile.name || `${profileTemplateByParam[templateKey].name} #${nextId}`,
+      level: Math.max(1, Number(legacyProfile.level) || 1),
+      rating: 0,
+      rarity: legacyProfile.rarity || profileTemplateByParam[templateKey].rarity || "rare",
+      logs: [...(legacyProfile.logs || [])].slice(-20),
+    });
+    nextId += 1;
+  }
+  return users;
+}
+
+function pickActiveUser(runtimeStore, requestedUserId, requestedTemplateKey) {
+  const byId = runtimeStore.users.find((user) => user.id === requestedUserId);
+  if (byId) {
+    return byId;
+  }
+  if (profileTemplateByParam[requestedTemplateKey]) {
+    const byTemplate = runtimeStore.users.find((user) => user.templateKey === requestedTemplateKey);
+    if (byTemplate) {
+      return byTemplate;
+    }
+  }
+  return runtimeStore.users[0];
+}
+
+function findUserById(users, userId) {
+  return users.find((user) => user.id === userId) || null;
+}
+
+function loadRuntimeStore(initialTemplateKey = "club") {
   const rawValue = window.localStorage.getItem(STORAGE_KEY);
   const parsed = safeParseJson(rawValue);
   const gameState = {
     finished: false,
-    winnerKey: null,
+    battlesStarted: false,
+    winnerUserId: null,
     frozenLeaderboard: null,
   };
+  let users = [];
+  let nextUserId = 1;
 
   if (parsed && typeof parsed === "object") {
-    const savedProfiles = parsed.profiles;
-    if (savedProfiles && typeof savedProfiles === "object") {
-      for (const [key, saved] of Object.entries(savedProfiles)) {
-        const target = profiles[key];
-        if (!target || !saved || typeof saved !== "object") {
-          continue;
-        }
-        if (Array.isArray(saved.logs)) {
-          target.logs = saved.logs.slice(-20);
-        }
-        if (Number.isFinite(saved.level)) {
-          target.level = Math.max(1, Math.floor(saved.level));
-        }
-      }
+    if (Array.isArray(parsed.users)) {
+      users = parsed.users
+        .filter((item) => item && typeof item === "object")
+        .map((item, index) => {
+          const safeId = Number.isFinite(item.id) ? Math.max(1, Math.floor(item.id)) : (index + 1);
+          return {
+            id: safeId,
+            templateKey: profileTemplateByParam[item.templateKey] ? item.templateKey : "club",
+            classId: item.classId || "warrior",
+            name: item.name || `USER #${safeId}`,
+            level: Math.max(1, Number(item.level) || 1),
+            rating: 0,
+            rarity: item.rarity || "rare",
+            logs: [...(item.logs || [])].slice(-20),
+            createdByAdmin: item.createdByAdmin === true,
+          };
+        })
+        .filter((user) => user.createdByAdmin === true);
+      nextUserId = Math.max(1, Number(parsed.nextUserId) || (users.length + 1));
     }
 
     const savedGame = parsed.game;
     if (savedGame && typeof savedGame === "object") {
       gameState.finished = Boolean(savedGame.finished);
-      gameState.winnerKey = typeof savedGame.winnerKey === "string" ? savedGame.winnerKey : null;
+      gameState.battlesStarted = Boolean(savedGame.battlesStarted);
+      gameState.winnerUserId = Number.isFinite(savedGame.winnerUserId)
+        ? Number(savedGame.winnerUserId)
+        : null;
       if (Array.isArray(savedGame.frozenLeaderboard)) {
         gameState.frozenLeaderboard = savedGame.frozenLeaderboard;
+      }
+      if (!gameState.winnerUserId && Number.isFinite(savedGame.winnerKey)) {
+        gameState.winnerUserId = Number(savedGame.winnerKey);
       }
     }
   }
 
-  const leaderboard = gameState.frozenLeaderboard || buildLeaderboardEntries(profiles);
-  applyRatingsFromLeaderboard(profiles, leaderboard);
+  if (!users.length) {
+    users = buildDefaultUsers(initialTemplateKey);
+    nextUserId = users.length + 1;
+  }
+
+  const hasModernFrozenLeaderboard =
+    users.length > 0 &&
+    Array.isArray(gameState.frozenLeaderboard) &&
+    gameState.frozenLeaderboard.every((entry) => Number.isFinite(entry?.userId)) &&
+    gameState.frozenLeaderboard.every((entry) => findUserById(users, entry.userId));
+  const leaderboard = hasModernFrozenLeaderboard
+    ? gameState.frozenLeaderboard
+    : buildLeaderboardEntries(users);
+  if (!hasModernFrozenLeaderboard) {
+    gameState.frozenLeaderboard = null;
+    if (!findUserById(users, gameState.winnerUserId)) {
+      gameState.winnerUserId = null;
+    }
+  }
+  applyRatingsFromLeaderboard(users, leaderboard);
 
   return {
-    profiles,
+    users,
+    nextUserId,
     gameState,
   };
 }
 
 function persistRuntimeStore(runtimeStore) {
-  const profilePayload = Object.fromEntries(
-    Object.entries(runtimeStore.profiles).map(([key, profile]) => [
-      key,
-      {
-        level: profile.level,
-        logs: (profile.logs || []).slice(-20),
-      },
-    ]),
-  );
-
   const payload = {
-    profiles: profilePayload,
+    users: runtimeStore.users.map((user) => ({
+      id: user.id,
+      templateKey: user.templateKey,
+      classId: user.classId,
+      name: user.name,
+      level: user.level,
+      rarity: user.rarity,
+      logs: (user.logs || []).slice(-20),
+      createdByAdmin: user.createdByAdmin === true,
+    })),
+    nextUserId: runtimeStore.nextUserId,
     game: {
       finished: Boolean(runtimeStore.gameState.finished),
-      winnerKey: runtimeStore.gameState.winnerKey || null,
+      battlesStarted: Boolean(runtimeStore.gameState.battlesStarted),
+      winnerUserId: runtimeStore.gameState.winnerUserId || null,
       frozenLeaderboard: runtimeStore.gameState.frozenLeaderboard || null,
     },
   };
 
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+}
+
+function createRandomUser(runtimeStore) {
+  const templateKey = "random";
+  const user = createUserFromTemplate(templateKey, runtimeStore.nextUserId);
+  runtimeStore.nextUserId += 1;
+  runtimeStore.users.push(user);
+  if (!runtimeStore.gameState.finished) {
+    const leaderboard = buildLeaderboardEntries(runtimeStore.users);
+    applyRatingsFromLeaderboard(runtimeStore.users, leaderboard);
+  }
+  persistRuntimeStore(runtimeStore);
+  return user;
+}
+
+function clearAllUsers(runtimeStore) {
+  runtimeStore.users = [];
+  runtimeStore.nextUserId = 1;
+  runtimeStore.gameState.finished = false;
+  runtimeStore.gameState.battlesStarted = false;
+  runtimeStore.gameState.winnerUserId = null;
+  runtimeStore.gameState.frozenLeaderboard = null;
+  persistRuntimeStore(runtimeStore);
 }
 
 function buildCombatLogText() {
@@ -683,21 +812,44 @@ const baseClassLabelRuById = {
 function openProfileSelectorPage() {
   const url = new URL(window.location.href);
   url.searchParams.set("view", "profiles");
-  url.searchParams.set("startapp", activeProfileParam);
+  if (hasActiveRuntimeUser) {
+    url.searchParams.set("user", String(activeUserId));
+  } else {
+    url.searchParams.delete("user");
+  }
+  url.searchParams.set("startapp", state.templateKey || "club");
   window.location.href = url.toString();
 }
 
 function openAdminPage() {
   const url = new URL(window.location.href);
   url.searchParams.set("view", "admin");
-  url.searchParams.set("startapp", activeProfileParam);
+  if (hasActiveRuntimeUser) {
+    url.searchParams.set("user", String(activeUserId));
+  } else {
+    url.searchParams.delete("user");
+  }
+  url.searchParams.set("startapp", state.templateKey || "club");
   window.location.href = url.toString();
 }
 
 function openProfilePage(profileParam) {
-  const nextParam = profileByParam[profileParam] ? profileParam : "club";
+  const nextParam = profileTemplateByParam[profileParam] ? profileParam : "club";
   const url = new URL(window.location.href);
   url.searchParams.set("startapp", nextParam);
+  url.searchParams.delete("user");
+  url.searchParams.delete("view");
+  window.location.href = url.toString();
+}
+
+function openUserSession(userId) {
+  const user = findUserById(runtimeStore.users, userId);
+  if (!user) {
+    return;
+  }
+  const url = new URL(window.location.href);
+  url.searchParams.set("user", String(user.id));
+  url.searchParams.set("startapp", user.templateKey || "club");
   url.searchParams.delete("view");
   window.location.href = url.toString();
 }
@@ -714,26 +866,50 @@ function renderProfileSelectorPage() {
     <section class="profile-selector-screen" aria-label="Profile Selector">
       <pre class="profile-selector-title">$ profiles/</pre>
       <div class="profile-selector-list" id="profileSelectorList"></div>
+      <pre class="profile-selector-title">$ users/</pre>
+      <div class="profile-selector-list" id="userSelectorList"></div>
     </section>
   `;
 
-  const listEl = document.getElementById("profileSelectorList");
-  if (!listEl) {
+  const profileListEl = document.getElementById("profileSelectorList");
+  const userListEl = document.getElementById("userSelectorList");
+  if (!profileListEl || !userListEl) {
     return;
   }
 
-  const profileEntries = Object.entries(profileByParam);
-  for (const [key, profile] of profileEntries) {
+  for (const [profileKey, profile] of Object.entries(profileTemplateByParam)) {
     const row = document.createElement("button");
     row.type = "button";
     row.className = "profile-selector-item";
-    if (key === activeProfileParam) {
+    if (!hasActiveRuntimeUser && selectedTemplateKey === profileKey) {
       row.classList.add("profile-selector-item-active");
     }
-    row.textContent = `----------  ${profile.classId.padEnd(7, " ")}  ${key}`;
-    row.setAttribute("aria-label", `Open profile ${key}`);
-    row.addEventListener("click", () => openProfilePage(key));
-    listEl.appendChild(row);
+    row.textContent = `----------  ${profile.classId.padEnd(7, " ")}  ${profileKey}`;
+    row.setAttribute("aria-label", `Open profile ${profileKey}`);
+    row.addEventListener("click", () => openProfilePage(profileKey));
+    profileListEl.appendChild(row);
+  }
+
+  const users = [...runtimeStore.users].sort((a, b) => a.id - b.id);
+  if (!users.length) {
+    const emptyRow = document.createElement("pre");
+    emptyRow.className = "profile-selector-item";
+    emptyRow.textContent = "----------  no users (create in admin)";
+    userListEl.appendChild(emptyRow);
+    return;
+  }
+  for (const user of users) {
+    const row = document.createElement("button");
+    row.type = "button";
+    row.className = "profile-selector-item";
+    if (user.id === activeUserId) {
+      row.classList.add("profile-selector-item-active");
+    }
+    const idLabel = `u${String(user.id).padStart(3, "0")}`;
+    row.textContent = `----------  ${user.classId.padEnd(7, " ")}  ${idLabel}  ${user.name}`;
+    row.setAttribute("aria-label", `Open user ${user.id}`);
+    row.addEventListener("click", () => openUserSession(user.id));
+    userListEl.appendChild(row);
   }
 }
 
@@ -741,36 +917,38 @@ function buildLeaderboardForView() {
   if (runtimeStore.gameState.finished && Array.isArray(runtimeStore.gameState.frozenLeaderboard)) {
     return runtimeStore.gameState.frozenLeaderboard;
   }
-  const entries = buildLeaderboardEntries(profileByParam);
-  applyRatingsFromLeaderboard(profileByParam, entries);
-  for (const [key, profile] of Object.entries(profileByParam)) {
-    if (key === activeProfileParam) {
-      state.rating = profile.rating;
-      state.level = profile.level;
-    }
+  const entries = buildLeaderboardEntries(runtimeStore.users);
+  applyRatingsFromLeaderboard(runtimeStore.users, entries);
+  const activeUser = findUserById(runtimeStore.users, activeUserId);
+  if (activeUser) {
+    state.rating = activeUser.rating;
+    state.level = activeUser.level;
   }
   persistRuntimeStore(runtimeStore);
   return entries;
 }
 
 function appendSystemLogToAllProfiles(text) {
-  for (const profile of Object.values(profileByParam)) {
-    const nextLogs = [...(profile.logs || []), { time: nowTime(), type: "system", text }];
-    profile.logs = nextLogs.slice(-20);
+  for (const user of runtimeStore.users) {
+    const nextLogs = [...(user.logs || []), { time: nowTime(), type: "system", text }];
+    user.logs = nextLogs.slice(-20);
   }
-  state.logs = [...(profileByParam[activeProfileParam]?.logs || [])];
+  state.logs = [...(findUserById(runtimeStore.users, activeUserId)?.logs || [])].slice(-5);
 }
 
 function finishGameAndFreezeLeaderboard() {
   if (runtimeStore.gameState.finished) {
     return;
   }
+  if (!runtimeStore.users.length) {
+    return;
+  }
 
-  const leaderboard = buildLeaderboardEntries(profileByParam);
-  applyRatingsFromLeaderboard(profileByParam, leaderboard);
+  const leaderboard = buildLeaderboardEntries(runtimeStore.users);
+  applyRatingsFromLeaderboard(runtimeStore.users, leaderboard);
   const winnerEntry = leaderboard[0] || null;
   runtimeStore.gameState.finished = true;
-  runtimeStore.gameState.winnerKey = winnerEntry?.key || null;
+  runtimeStore.gameState.winnerUserId = winnerEntry?.userId || null;
   runtimeStore.gameState.frozenLeaderboard = leaderboard;
 
   const winnerName = winnerEntry?.name || "неизвестный пользователь";
@@ -785,15 +963,18 @@ function renderAdminPage() {
   }
 
   const leaderboard = buildLeaderboardForView();
-  const winnerKey = runtimeStore.gameState.winnerKey || leaderboard[0]?.key || null;
+  const winnerUserId = runtimeStore.gameState.winnerUserId || leaderboard[0]?.userId || null;
 
   document.body.classList.add("profile-selector-mode");
   appRootEl.innerHTML = `
     <section class="admin-screen" aria-label="Admin panel">
       <pre class="admin-title">$ admin/leaderboard</pre>
-      <p class="admin-summary">${runtimeStore.gameState.finished ? "status: frozen" : "status: live"}</p>
+      <p class="admin-summary">${runtimeStore.gameState.finished ? "status: frozen" : "status: live"} • battles: ${runtimeStore.gameState.battlesStarted ? "on" : "off"}</p>
       <div class="admin-list" id="adminList"></div>
       <div class="admin-actions">
+        <button class="admin-btn" id="adminStartBattlesBtn" type="button"${runtimeStore.gameState.finished || runtimeStore.gameState.battlesStarted ? " disabled" : ""}>[start battles]</button>
+        <button class="admin-btn" id="adminNewUserBtn" type="button"${runtimeStore.gameState.finished ? " disabled" : ""}>[new user]</button>
+        <button class="admin-btn" id="adminClearUsersBtn" type="button"${!runtimeStore.users.length ? " disabled" : ""}>[clear users]</button>
         <button class="admin-btn" id="adminBackBtn" type="button">[profiles]</button>
         <button class="admin-btn" id="finishGameBtn" type="button"${runtimeStore.gameState.finished ? " disabled" : ""}>[finish game]</button>
       </div>
@@ -803,23 +984,54 @@ function renderAdminPage() {
 
   const listEl = document.getElementById("adminList");
   for (const entry of leaderboard) {
-    const row = document.createElement("pre");
+    const row = document.createElement("button");
+    row.type = "button";
     row.className = "admin-row";
-    if (entry.key === winnerKey) {
+    if (entry.userId === winnerUserId) {
       row.classList.add("admin-row-winner");
     }
+    row.setAttribute("aria-label", `Open user ${entry.userId}`);
     row.textContent =
       `${String(entry.rating).padStart(2, "0")}. ${entry.name.padEnd(14, " ")} ` +
       `${entry.classId.padEnd(7, " ")} Lv${String(entry.level).padStart(2, " ")} ` +
       `HP${String(entry.hp).padStart(2, " ")} ATK${String(entry.attack).padStart(2, " ")} ` +
-      `PWR ${entry.power.toFixed(2)}`;
+      `PWR ${entry.power.toFixed(2)}  [open]`;
+    row.addEventListener("click", () => openUserSession(entry.userId));
     listEl?.appendChild(row);
   }
 
   const noteEl = document.getElementById("adminNote");
+  const winnerUser = findUserById(runtimeStore.users, winnerUserId);
   noteEl.textContent = runtimeStore.gameState.finished
-    ? `winner: ${profileByParam[winnerKey]?.name || "неизвестный"}`
-    : "press [finish game] to freeze leaderboard";
+    ? `winner: ${winnerUser?.name || "неизвестный"}`
+    : (!runtimeStore.users.length
+      ? "leaderboard is empty until [new user]"
+      : "use [new user] to create users, click [open] to enter session");
+
+  const startBattlesBtn = document.getElementById("adminStartBattlesBtn");
+  startBattlesBtn?.addEventListener("click", () => {
+    if (runtimeStore.gameState.finished || runtimeStore.gameState.battlesStarted) {
+      return;
+    }
+    runtimeStore.gameState.battlesStarted = true;
+    persistRuntimeStore(runtimeStore);
+    renderAdminPage();
+  });
+
+  const newUserBtn = document.getElementById("adminNewUserBtn");
+  newUserBtn?.addEventListener("click", () => {
+    if (runtimeStore.gameState.finished) {
+      return;
+    }
+    createRandomUser(runtimeStore);
+    renderAdminPage();
+  });
+
+  const clearUsersBtn = document.getElementById("adminClearUsersBtn");
+  clearUsersBtn?.addEventListener("click", () => {
+    clearAllUsers(runtimeStore);
+    renderAdminPage();
+  });
 
   const backBtn = document.getElementById("adminBackBtn");
   backBtn?.addEventListener("click", openProfileSelectorPage);
@@ -1341,13 +1553,14 @@ function pushRandomLog() {
     return;
   }
 
-  const weightedTypes = [
-    { id: "combat", weight: 0.52 },
-    { id: "system", weight: 0.2 },
-    { id: "drop", weight: 0.2 },
-    { id: "levelup", weight: 0.08 },
-  ];
-  const selectedType = pickByWeight(weightedTypes)?.id || "combat";
+  const selectedType = runtimeStore.gameState.battlesStarted
+    ? (pickByWeight([
+      { id: "combat", weight: 0.52 },
+      { id: "system", weight: 0.2 },
+      { id: "drop", weight: 0.2 },
+      { id: "levelup", weight: 0.08 },
+    ])?.id || "combat")
+    : "system";
   const combatMeta = selectedType === "combat" ? buildCombatLogText() : null;
   const randomText =
     selectedType === "combat"
@@ -1361,8 +1574,9 @@ function pushRandomLog() {
     text: randomText,
   });
   state.logs = state.logs.slice(-5);
-  if (profileByParam[activeProfileParam]) {
-    profileByParam[activeProfileParam].logs = [...state.logs];
+  const activeUser = findUserById(runtimeStore.users, activeUserId);
+  if (activeUser) {
+    activeUser.logs = [...state.logs];
   }
   persistRuntimeStore(runtimeStore);
 
