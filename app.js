@@ -17,7 +17,7 @@ if (tg) {
   tg.expand();
 }
 
-const profileByParam = {
+const baseProfileByParam = {
   club: {
     id: 42,
     classId: "warrior",
@@ -133,6 +133,10 @@ const profileByParam = {
     ],
   },
 };
+
+const STORAGE_KEY = "miniapp.runtime.v1";
+const BATTLE_POWER_K = 1;
+const BATTLE_W_LVL = 0.6;
 
 const logPoolByType = {
   system: ["arena sync", "match queue ready", "signal stable"],
@@ -315,15 +319,22 @@ function isProfileSelectorMode() {
   return url.searchParams.get("view") === "profiles";
 }
 
+function isAdminMode() {
+  const url = new URL(window.location.href);
+  return url.searchParams.get("view") === "admin";
+}
+
+const randomPreset = buildRandomPreset();
+const runtimeStore = loadRuntimeStore();
+const profileByParam = runtimeStore.profiles;
 const requestedProfileParam = getStartParam();
 const activeProfileParam = profileByParam[requestedProfileParam] ? requestedProfileParam : "club";
 const selectedProfile = profileByParam[activeProfileParam];
 const spriteDebugMode = isSpriteDebugMode();
 const state = {
   ...selectedProfile,
-  logs: [...selectedProfile.logs],
+  logs: [...(selectedProfile.logs || [])].slice(-5),
 };
-const randomPreset = buildRandomPreset();
 const randomClassAdjectives = [
   "Перегруженный",
   "Фуззовый",
@@ -426,6 +437,149 @@ function pickRandomFrom(items, fallback = "") {
   return items[Math.floor(Math.random() * items.length)] || fallback;
 }
 
+function cloneProfiles(source) {
+  return Object.fromEntries(
+    Object.entries(source).map(([key, profile]) => [
+      key,
+      {
+        ...profile,
+        logs: [...(profile.logs || [])],
+      },
+    ]),
+  );
+}
+
+function safeParseJson(rawValue) {
+  try {
+    return JSON.parse(rawValue);
+  } catch {
+    return null;
+  }
+}
+
+function computeBattlePower(level, hp, attack) {
+  const safeLevel = Number(level) || 0;
+  const safeHp = Math.max(1, Number(hp) || 1);
+  const safeAttack = Math.max(1, Number(attack) || 1);
+  return (safeAttack / (safeHp + BATTLE_POWER_K)) + (safeHp / (safeAttack + BATTLE_POWER_K)) + (BATTLE_W_LVL * safeLevel);
+}
+
+function buildProfilePreset(profile) {
+  if (!profile) {
+    return characterPresetByClassId.warrior;
+  }
+  if (profile.classId === "random") {
+    return randomPreset;
+  }
+  return characterPresetByClassId[profile.classId] || characterPresetByClassId.warrior;
+}
+
+function buildLeaderboardEntries(profilesByKey) {
+  const entries = Object.entries(profilesByKey).map(([key, profile]) => {
+    const preset = buildProfilePreset(profile);
+    const combatStats = getPresetCombatStats(preset);
+    const hp = Math.max(1, Number(combatStats.hp) || 1);
+    const attack = Math.max(1, Number(combatStats.attack) || 1);
+    const level = Number(profile.level) || 1;
+    const power = computeBattlePower(level, hp, attack);
+    return {
+      key,
+      id: profile.id,
+      classId: profile.classId,
+      name: profile.name,
+      level,
+      hp,
+      attack,
+      power,
+    };
+  });
+
+  entries.sort((a, b) => b.power - a.power || b.level - a.level || b.attack - a.attack || a.id - b.id);
+  return entries.map((entry, index) => ({
+    ...entry,
+    rating: index + 1,
+  }));
+}
+
+function applyRatingsFromLeaderboard(profilesByKey, leaderboardEntries) {
+  for (const entry of leaderboardEntries) {
+    const profile = profilesByKey[entry.key];
+    if (!profile) {
+      continue;
+    }
+    profile.rating = entry.rating;
+  }
+}
+
+function loadRuntimeStore() {
+  const profiles = cloneProfiles(baseProfileByParam);
+  const rawValue = window.localStorage.getItem(STORAGE_KEY);
+  const parsed = safeParseJson(rawValue);
+  const gameState = {
+    finished: false,
+    winnerKey: null,
+    frozenLeaderboard: null,
+  };
+
+  if (parsed && typeof parsed === "object") {
+    const savedProfiles = parsed.profiles;
+    if (savedProfiles && typeof savedProfiles === "object") {
+      for (const [key, saved] of Object.entries(savedProfiles)) {
+        const target = profiles[key];
+        if (!target || !saved || typeof saved !== "object") {
+          continue;
+        }
+        if (Array.isArray(saved.logs)) {
+          target.logs = saved.logs.slice(-20);
+        }
+        if (Number.isFinite(saved.level)) {
+          target.level = Math.max(1, Math.floor(saved.level));
+        }
+      }
+    }
+
+    const savedGame = parsed.game;
+    if (savedGame && typeof savedGame === "object") {
+      gameState.finished = Boolean(savedGame.finished);
+      gameState.winnerKey = typeof savedGame.winnerKey === "string" ? savedGame.winnerKey : null;
+      if (Array.isArray(savedGame.frozenLeaderboard)) {
+        gameState.frozenLeaderboard = savedGame.frozenLeaderboard;
+      }
+    }
+  }
+
+  const leaderboard = gameState.frozenLeaderboard || buildLeaderboardEntries(profiles);
+  applyRatingsFromLeaderboard(profiles, leaderboard);
+
+  return {
+    profiles,
+    gameState,
+  };
+}
+
+function persistRuntimeStore(runtimeStore) {
+  const profilePayload = Object.fromEntries(
+    Object.entries(runtimeStore.profiles).map(([key, profile]) => [
+      key,
+      {
+        level: profile.level,
+        logs: (profile.logs || []).slice(-20),
+      },
+    ]),
+  );
+
+  const payload = {
+    profiles: profilePayload,
+    game: {
+      finished: Boolean(runtimeStore.gameState.finished),
+      winnerKey: runtimeStore.gameState.winnerKey || null,
+      frozenLeaderboard: runtimeStore.gameState.frozenLeaderboard || null,
+    },
+  };
+
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+}
+
 function buildCombatLogText() {
   const isVictory = Math.random() >= 0.5;
   const combatResult = isVictory ? "victory" : "defeat";
@@ -501,6 +655,7 @@ const fighterStageEl = document.querySelector(".fighter-stage");
 const logoWrapEl = document.querySelector(".game-logo-wrap");
 const logoEl = document.querySelector(".game-logo");
 const closeAsciiBtnEl = document.getElementById("closeAsciiBtn");
+const adminAsciiBtnEl = document.getElementById("adminAsciiBtn");
 let character = null;
 let replyTypewriter = null;
 
@@ -528,6 +683,13 @@ const baseClassLabelRuById = {
 function openProfileSelectorPage() {
   const url = new URL(window.location.href);
   url.searchParams.set("view", "profiles");
+  url.searchParams.set("startapp", activeProfileParam);
+  window.location.href = url.toString();
+}
+
+function openAdminPage() {
+  const url = new URL(window.location.href);
+  url.searchParams.set("view", "admin");
   url.searchParams.set("startapp", activeProfileParam);
   window.location.href = url.toString();
 }
@@ -573,6 +735,100 @@ function renderProfileSelectorPage() {
     row.addEventListener("click", () => openProfilePage(key));
     listEl.appendChild(row);
   }
+}
+
+function buildLeaderboardForView() {
+  if (runtimeStore.gameState.finished && Array.isArray(runtimeStore.gameState.frozenLeaderboard)) {
+    return runtimeStore.gameState.frozenLeaderboard;
+  }
+  const entries = buildLeaderboardEntries(profileByParam);
+  applyRatingsFromLeaderboard(profileByParam, entries);
+  for (const [key, profile] of Object.entries(profileByParam)) {
+    if (key === activeProfileParam) {
+      state.rating = profile.rating;
+      state.level = profile.level;
+    }
+  }
+  persistRuntimeStore(runtimeStore);
+  return entries;
+}
+
+function appendSystemLogToAllProfiles(text) {
+  for (const profile of Object.values(profileByParam)) {
+    const nextLogs = [...(profile.logs || []), { time: nowTime(), type: "system", text }];
+    profile.logs = nextLogs.slice(-20);
+  }
+  state.logs = [...(profileByParam[activeProfileParam]?.logs || [])];
+}
+
+function finishGameAndFreezeLeaderboard() {
+  if (runtimeStore.gameState.finished) {
+    return;
+  }
+
+  const leaderboard = buildLeaderboardEntries(profileByParam);
+  applyRatingsFromLeaderboard(profileByParam, leaderboard);
+  const winnerEntry = leaderboard[0] || null;
+  runtimeStore.gameState.finished = true;
+  runtimeStore.gameState.winnerKey = winnerEntry?.key || null;
+  runtimeStore.gameState.frozenLeaderboard = leaderboard;
+
+  const winnerName = winnerEntry?.name || "неизвестный пользователь";
+  appendSystemLogToAllProfiles(`битва завершена, победитель: ${winnerName}`);
+  persistRuntimeStore(runtimeStore);
+}
+
+function renderAdminPage() {
+  const appRootEl = document.getElementById("appRoot");
+  if (!appRootEl) {
+    return;
+  }
+
+  const leaderboard = buildLeaderboardForView();
+  const winnerKey = runtimeStore.gameState.winnerKey || leaderboard[0]?.key || null;
+
+  document.body.classList.add("profile-selector-mode");
+  appRootEl.innerHTML = `
+    <section class="admin-screen" aria-label="Admin panel">
+      <pre class="admin-title">$ admin/leaderboard</pre>
+      <p class="admin-summary">${runtimeStore.gameState.finished ? "status: frozen" : "status: live"}</p>
+      <div class="admin-list" id="adminList"></div>
+      <div class="admin-actions">
+        <button class="admin-btn" id="adminBackBtn" type="button">[profiles]</button>
+        <button class="admin-btn" id="finishGameBtn" type="button"${runtimeStore.gameState.finished ? " disabled" : ""}>[finish game]</button>
+      </div>
+      <p class="admin-note" id="adminNote"></p>
+    </section>
+  `;
+
+  const listEl = document.getElementById("adminList");
+  for (const entry of leaderboard) {
+    const row = document.createElement("pre");
+    row.className = "admin-row";
+    if (entry.key === winnerKey) {
+      row.classList.add("admin-row-winner");
+    }
+    row.textContent =
+      `${String(entry.rating).padStart(2, "0")}. ${entry.name.padEnd(14, " ")} ` +
+      `${entry.classId.padEnd(7, " ")} Lv${String(entry.level).padStart(2, " ")} ` +
+      `HP${String(entry.hp).padStart(2, " ")} ATK${String(entry.attack).padStart(2, " ")} ` +
+      `PWR ${entry.power.toFixed(2)}`;
+    listEl?.appendChild(row);
+  }
+
+  const noteEl = document.getElementById("adminNote");
+  noteEl.textContent = runtimeStore.gameState.finished
+    ? `winner: ${profileByParam[winnerKey]?.name || "неизвестный"}`
+    : "press [finish game] to freeze leaderboard";
+
+  const backBtn = document.getElementById("adminBackBtn");
+  backBtn?.addEventListener("click", openProfileSelectorPage);
+
+  const finishBtn = document.getElementById("finishGameBtn");
+  finishBtn?.addEventListener("click", () => {
+    finishGameAndFreezeLeaderboard();
+    renderAdminPage();
+  });
 }
 
 class CharacterEntity {
@@ -1081,6 +1337,9 @@ function pushRandomLog() {
   if (!character || !replyTypewriter) {
     return;
   }
+  if (runtimeStore.gameState.finished) {
+    return;
+  }
 
   const weightedTypes = [
     { id: "combat", weight: 0.52 },
@@ -1102,6 +1361,10 @@ function pushRandomLog() {
     text: randomText,
   });
   state.logs = state.logs.slice(-5);
+  if (profileByParam[activeProfileParam]) {
+    profileByParam[activeProfileParam].logs = [...state.logs];
+  }
+  persistRuntimeStore(runtimeStore);
 
   renderLogs();
 
@@ -1159,7 +1422,9 @@ function fitLogoToViewport() {
   logoEl.style.transform = `scale(${scale})`;
 }
 
-if (isProfileSelectorMode()) {
+if (isAdminMode()) {
+  renderAdminPage();
+} else if (isProfileSelectorMode()) {
   renderProfileSelectorPage();
 } else {
   renderHeader();
@@ -1194,5 +1459,8 @@ if (isProfileSelectorMode()) {
 
   if (closeAsciiBtnEl) {
     closeAsciiBtnEl.addEventListener("click", openProfileSelectorPage);
+  }
+  if (adminAsciiBtnEl) {
+    adminAsciiBtnEl.addEventListener("click", openAdminPage);
   }
 }
