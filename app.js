@@ -137,6 +137,14 @@ const profileTemplateByParam = {
 const STORAGE_KEY = "miniapp.runtime.v1";
 const BATTLE_POWER_K = 1;
 const BATTLE_W_LVL = 0.6;
+const DEFAULT_RUNTIME_CONFIG = Object.freeze({
+  systemLogIntervalMs: 10000,
+  battleTickIntervalMs: 15000,
+});
+const MIN_INTERVAL_MS = 1000;
+const MAX_INTERVAL_MS = 300000;
+const MAX_STORED_LOGS_PER_USER = 20;
+const MAX_UI_LOGS = 5;
 
 const logPoolByType = {
   system: ["arena sync", "match queue ready", "signal stable"],
@@ -302,6 +310,30 @@ function getStartParam() {
   return tg?.initDataUnsafe?.start_param || urlParam || "club";
 }
 
+function clampNumber(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getPositiveIntervalFromUrlParam(paramName, fallback) {
+  const url = new URL(window.location.href);
+  const raw = url.searchParams.get(paramName);
+  if (!raw) {
+    return fallback;
+  }
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return fallback;
+  }
+  return clampNumber(parsed, MIN_INTERVAL_MS, MAX_INTERVAL_MS);
+}
+
+function resolveRuntimeConfig() {
+  return {
+    systemLogIntervalMs: getPositiveIntervalFromUrlParam("sysLogMs", DEFAULT_RUNTIME_CONFIG.systemLogIntervalMs),
+    battleTickIntervalMs: getPositiveIntervalFromUrlParam("battleMs", DEFAULT_RUNTIME_CONFIG.battleTickIntervalMs),
+  };
+}
+
 function isSpriteDebugMode() {
   const url = new URL(window.location.href);
   return url.searchParams.get("debugSprite") === "1";
@@ -336,6 +368,7 @@ function getRequestedUserId() {
 
 const randomPreset = buildRandomPreset();
 const requestedProfileParam = getStartParam();
+const runtimeConfig = resolveRuntimeConfig();
 const requestedUserId = getRequestedUserId();
 const runtimeStore = loadRuntimeStore(requestedProfileParam);
 const selectedUser = pickActiveUser(runtimeStore, requestedUserId, requestedProfileParam);
@@ -351,7 +384,7 @@ const state = {
   level: selectedSession.level,
   rating: selectedSession.rating || 0,
   rarity: selectedSession.rarity || "rare",
-  logs: [...(selectedSession.logs || [])].slice(-5),
+  logs: [...(selectedSession.logs || [])].slice(-MAX_UI_LOGS),
 };
 const activeUserId = state.userId;
 const hasActiveRuntimeUser = Number.isFinite(activeUserId);
@@ -473,19 +506,79 @@ function buildInitialSystemLogs(template) {
   return [{ time: nowTime(), type: "system", text: "arena sync" }];
 }
 
-function createUserFromTemplate(templateKey, userId, createdByAdmin = true) {
-  const template = profileTemplateByParam[templateKey] || profileTemplateByParam.club;
-  return {
-    id: userId,
+class User {
+  constructor({
+    id,
     templateKey,
-    classId: template.classId,
-    name: userId > 0 ? `${template.name} #${userId}` : template.name,
-    level: Math.max(1, Number(template.level) || 1),
-    rating: Math.max(0, Number(template.rating) || 0),
-    rarity: template.rarity || "rare",
-    logs: buildInitialSystemLogs(template),
-    createdByAdmin: Boolean(createdByAdmin),
-  };
+    classId,
+    name,
+    level = 1,
+    rating = 0,
+    rarity = "rare",
+    logs = [],
+    createdByAdmin = true,
+  }) {
+    this.id = Number.isFinite(id) ? Math.max(0, Math.floor(id)) : 0;
+    this.templateKey = profileTemplateByParam[templateKey] ? templateKey : "club";
+    this.classId = classId || profileTemplateByParam[this.templateKey].classId || "warrior";
+    this.name = name || `USER #${this.id}`;
+    this.level = Math.max(1, Number(level) || 1);
+    this.rating = Math.max(0, Number(rating) || 0);
+    this.rarity = rarity || "rare";
+    this.logs = [...(logs || [])].slice(-MAX_STORED_LOGS_PER_USER);
+    this.createdByAdmin = createdByAdmin === true;
+  }
+
+  static fromTemplate(templateKey, userId, createdByAdmin = true) {
+    const template = profileTemplateByParam[templateKey] || profileTemplateByParam.club;
+    return new User({
+      id: userId,
+      templateKey,
+      classId: template.classId,
+      name: userId > 0 ? `${template.name} #${userId}` : template.name,
+      level: Math.max(1, Number(template.level) || 1),
+      rating: Math.max(0, Number(template.rating) || 0),
+      rarity: template.rarity || "rare",
+      logs: buildInitialSystemLogs(template),
+      createdByAdmin,
+    });
+  }
+
+  static fromStored(item, index = 0) {
+    const safeId = Number.isFinite(item?.id) ? Math.max(1, Math.floor(item.id)) : (index + 1);
+    return new User({
+      id: safeId,
+      templateKey: item?.templateKey,
+      classId: item?.classId,
+      name: item?.name || `USER #${safeId}`,
+      level: item?.level,
+      rating: 0,
+      rarity: item?.rarity,
+      logs: [...(item?.logs || [])],
+      createdByAdmin: item?.createdByAdmin === true,
+    });
+  }
+
+  withLogs(logs) {
+    this.logs = [...(logs || [])].slice(-MAX_STORED_LOGS_PER_USER);
+  }
+
+  toRecord() {
+    return {
+      id: this.id,
+      templateKey: this.templateKey,
+      classId: this.classId,
+      name: this.name,
+      level: this.level,
+      rarity: this.rarity,
+      logs: (this.logs || []).slice(-MAX_STORED_LOGS_PER_USER),
+      createdByAdmin: this.createdByAdmin === true,
+    };
+  }
+}
+
+function createUserFromTemplate(templateKey, userId, createdByAdmin = true) {
+  return User.fromTemplate(templateKey, userId, createdByAdmin);
 }
 
 function buildDefaultUsers(initialTemplateKey = "club") {
@@ -551,7 +644,7 @@ function migrateLegacyProfilesToUsers(legacyProfiles) {
       continue;
     }
     const templateKey = profileTemplateByParam[legacyKey] ? legacyKey : "club";
-    users.push({
+    users.push(new User({
       id: nextId,
       templateKey,
       classId: legacyProfile.classId || profileTemplateByParam[templateKey].classId,
@@ -559,8 +652,9 @@ function migrateLegacyProfilesToUsers(legacyProfiles) {
       level: Math.max(1, Number(legacyProfile.level) || 1),
       rating: 0,
       rarity: legacyProfile.rarity || profileTemplateByParam[templateKey].rarity || "rare",
-      logs: [...(legacyProfile.logs || [])].slice(-20),
-    });
+      logs: [...(legacyProfile.logs || [])],
+      createdByAdmin: true,
+    }));
     nextId += 1;
   }
   return users;
@@ -600,20 +694,7 @@ function loadRuntimeStore(initialTemplateKey = "club") {
     if (Array.isArray(parsed.users)) {
       users = parsed.users
         .filter((item) => item && typeof item === "object")
-        .map((item, index) => {
-          const safeId = Number.isFinite(item.id) ? Math.max(1, Math.floor(item.id)) : (index + 1);
-          return {
-            id: safeId,
-            templateKey: profileTemplateByParam[item.templateKey] ? item.templateKey : "club",
-            classId: item.classId || "warrior",
-            name: item.name || `USER #${safeId}`,
-            level: Math.max(1, Number(item.level) || 1),
-            rating: 0,
-            rarity: item.rarity || "rare",
-            logs: [...(item.logs || [])].slice(-20),
-            createdByAdmin: item.createdByAdmin === true,
-          };
-        })
+        .map((item, index) => User.fromStored(item, index))
         .filter((user) => user.createdByAdmin === true);
       nextUserId = Math.max(1, Number(parsed.nextUserId) || (users.length + 1));
     }
@@ -664,16 +745,7 @@ function loadRuntimeStore(initialTemplateKey = "club") {
 
 function persistRuntimeStore(runtimeStore) {
   const payload = {
-    users: runtimeStore.users.map((user) => ({
-      id: user.id,
-      templateKey: user.templateKey,
-      classId: user.classId,
-      name: user.name,
-      level: user.level,
-      rarity: user.rarity,
-      logs: (user.logs || []).slice(-20),
-      createdByAdmin: user.createdByAdmin === true,
-    })),
+    users: runtimeStore.users.map((user) => user.toRecord()),
     nextUserId: runtimeStore.nextUserId,
     game: {
       finished: Boolean(runtimeStore.gameState.finished),
@@ -931,9 +1003,13 @@ function buildLeaderboardForView() {
 function appendSystemLogToAllProfiles(text) {
   for (const user of runtimeStore.users) {
     const nextLogs = [...(user.logs || []), { time: nowTime(), type: "system", text }];
-    user.logs = nextLogs.slice(-20);
+    if (typeof user.withLogs === "function") {
+      user.withLogs(nextLogs);
+    } else {
+      user.logs = nextLogs.slice(-MAX_STORED_LOGS_PER_USER);
+    }
   }
-  state.logs = [...(findUserById(runtimeStore.users, activeUserId)?.logs || [])].slice(-5);
+  state.logs = [...(findUserById(runtimeStore.users, activeUserId)?.logs || [])].slice(-MAX_UI_LOGS);
 }
 
 function finishGameAndFreezeLeaderboard() {
@@ -1545,7 +1621,25 @@ function renderLogs() {
   logContainerEl.scrollTop = logContainerEl.scrollHeight;
 }
 
-function pushRandomLog() {
+function appendLogAndRefresh(logItem) {
+  if (!character || !replyTypewriter) {
+    return;
+  }
+  state.logs.push(logItem);
+  state.logs = state.logs.slice(-MAX_UI_LOGS);
+  const activeUser = findUserById(runtimeStore.users, activeUserId);
+  if (activeUser) {
+    activeUser.withLogs(state.logs);
+  }
+  persistRuntimeStore(runtimeStore);
+  renderLogs();
+
+  const lastLog = state.logs[state.logs.length - 1] || { type: "system" };
+  const nextReply = character.getReplyForLog(lastLog);
+  replyTypewriter.eraseAndType(nextReply);
+}
+
+function pushSystemTickLog() {
   if (!character || !replyTypewriter) {
     return;
   }
@@ -1553,38 +1647,38 @@ function pushRandomLog() {
     return;
   }
 
-  const selectedType = runtimeStore.gameState.battlesStarted
-    ? (pickByWeight([
-      { id: "combat", weight: 0.52 },
-      { id: "system", weight: 0.2 },
-      { id: "drop", weight: 0.2 },
-      { id: "levelup", weight: 0.08 },
-    ])?.id || "combat")
-    : "system";
+  appendLogAndRefresh({
+    time: nowTime(),
+    type: "system",
+    text: pickRandomFrom(logPoolByType.system, "signal stable"),
+  });
+}
+
+function pushBattleTickLog() {
+  if (!character || !replyTypewriter) {
+    return;
+  }
+  if (runtimeStore.gameState.finished || !runtimeStore.gameState.battlesStarted) {
+    return;
+  }
+
+  const selectedType = pickByWeight([
+    { id: "combat", weight: 0.62 },
+    { id: "drop", weight: 0.25 },
+    { id: "levelup", weight: 0.13 },
+  ])?.id || "combat";
   const combatMeta = selectedType === "combat" ? buildCombatLogText() : null;
-  const randomText =
+  const text =
     selectedType === "combat"
       ? combatMeta.text
       : pickRandomFrom(logPoolByType[selectedType] || logPoolByType.system, "signal stable");
 
-  state.logs.push({
+  appendLogAndRefresh({
     time: nowTime(),
     type: selectedType,
     ...(combatMeta ? { combatResult: combatMeta.combatResult } : {}),
-    text: randomText,
+    text,
   });
-  state.logs = state.logs.slice(-5);
-  const activeUser = findUserById(runtimeStore.users, activeUserId);
-  if (activeUser) {
-    activeUser.logs = [...state.logs];
-  }
-  persistRuntimeStore(runtimeStore);
-
-  renderLogs();
-
-  const lastLog = state.logs[state.logs.length - 1] || { type: "system" };
-  const nextReply = character.getReplyForLog(lastLog);
-  replyTypewriter.eraseAndType(nextReply);
 }
 
 function centerFighterToViewport() {
@@ -1669,7 +1763,8 @@ if (isAdminMode()) {
   window.setTimeout(centerFighterToViewport, 80);
   window.setTimeout(fitLogoToViewport, 80);
 
-  window.setInterval(pushRandomLog, 10000);
+  window.setInterval(pushSystemTickLog, runtimeConfig.systemLogIntervalMs);
+  window.setInterval(pushBattleTickLog, runtimeConfig.battleTickIntervalMs);
 
   if (closeAsciiBtnEl) {
     closeAsciiBtnEl.addEventListener("click", openProfileSelectorPage);
