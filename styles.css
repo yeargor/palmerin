@@ -345,11 +345,11 @@ body {
 }
 
 .log-combat {
-  color: var(--accent);
+  color: #d10c0c;
 }
 
 .log-combat-victory {
-  color: #4eb665;
+  color: #2f8a46;
 }
 
 .log-drop,
