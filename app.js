@@ -1,8 +1,12 @@
 import {
   SPRITE_GRID_WIDTH,
   SPRITE_MIN_GRID_HEIGHT,
+  COMPONENT_SLOTS,
+  componentById,
+  randomPoolBySlot,
   characterPresetByClassId,
   buildRandomPreset,
+  validatePresetOrThrow,
   detectPresetDominantBaseClass,
   getPresetColorTierWeights,
   getPresetCombatStats,
@@ -140,6 +144,7 @@ const BATTLE_W_LVL = 0.6;
 const DEFAULT_RUNTIME_CONFIG = Object.freeze({
   systemLogIntervalMs: 10000,
   battleTickIntervalMs: 15000,
+  matchmakingMaxDelta: 1.75,
 });
 const MIN_INTERVAL_MS = 1000;
 const MAX_INTERVAL_MS = 300000;
@@ -331,6 +336,11 @@ function resolveRuntimeConfig() {
   return {
     systemLogIntervalMs: getPositiveIntervalFromUrlParam("sysLogMs", DEFAULT_RUNTIME_CONFIG.systemLogIntervalMs),
     battleTickIntervalMs: getPositiveIntervalFromUrlParam("battleMs", DEFAULT_RUNTIME_CONFIG.battleTickIntervalMs),
+    matchmakingMaxDelta: clampNumber(
+      Number.parseFloat(new URL(window.location.href).searchParams.get("mmMaxDelta") || ""),
+      0.1,
+      5,
+    ) || DEFAULT_RUNTIME_CONFIG.matchmakingMaxDelta,
   };
 }
 
@@ -366,7 +376,6 @@ function getRequestedUserId() {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-const randomPreset = buildRandomPreset();
 const requestedProfileParam = getStartParam();
 const runtimeConfig = resolveRuntimeConfig();
 const requestedUserId = getRequestedUserId();
@@ -380,6 +389,7 @@ const state = {
   userId: selectedUser ? selectedSession.id : null,
   templateKey: selectedSession.templateKey || selectedTemplateKey,
   classId: selectedSession.classId,
+  preset: sanitizePreset(selectedSession.preset, selectedSession.templateKey, selectedSession.classId),
   name: selectedSession.name,
   level: selectedSession.level,
   rating: selectedSession.rating || 0,
@@ -506,6 +516,30 @@ function buildInitialSystemLogs(template) {
   return [{ time: nowTime(), type: "system", text: "arena sync" }];
 }
 
+function sanitizePreset(rawPreset, templateKey = "club", classId = "warrior") {
+  const fallbackClass = classId === "random"
+    ? "warrior"
+    : (characterPresetByClassId[classId] ? classId : "warrior");
+  const fallbackPreset =
+    templateKey === "random"
+      ? buildRandomPreset()
+      : { ...(characterPresetByClassId[fallbackClass] || characterPresetByClassId.warrior) };
+
+  if (!rawPreset || typeof rawPreset !== "object") {
+    return fallbackPreset;
+  }
+  const candidate = {};
+  for (const slot of COMPONENT_SLOTS) {
+    candidate[slot] = rawPreset[slot];
+  }
+  try {
+    validatePresetOrThrow(candidate);
+    return candidate;
+  } catch {
+    return fallbackPreset;
+  }
+}
+
 class User {
   constructor({
     id,
@@ -516,6 +550,7 @@ class User {
     rating = 0,
     rarity = "rare",
     logs = [],
+    preset = null,
     createdByAdmin = true,
   }) {
     this.id = Number.isFinite(id) ? Math.max(0, Math.floor(id)) : 0;
@@ -525,6 +560,8 @@ class User {
     this.level = Math.max(1, Number(level) || 1);
     this.rating = Math.max(0, Number(rating) || 0);
     this.rarity = rarity || "rare";
+    this.preset = sanitizePreset(preset, this.templateKey, this.classId);
+    this.classId = detectPresetDominantBaseClass(this.preset);
     this.logs = [...(logs || [])].slice(-MAX_STORED_LOGS_PER_USER);
     this.createdByAdmin = createdByAdmin === true;
   }
@@ -540,6 +577,9 @@ class User {
       rating: Math.max(0, Number(template.rating) || 0),
       rarity: template.rarity || "rare",
       logs: buildInitialSystemLogs(template),
+      preset: templateKey === "random"
+        ? buildRandomPreset()
+        : { ...(characterPresetByClassId[template.classId] || characterPresetByClassId.warrior) },
       createdByAdmin,
     });
   }
@@ -555,6 +595,7 @@ class User {
       rating: 0,
       rarity: item?.rarity,
       logs: [...(item?.logs || [])],
+      preset: item?.preset,
       createdByAdmin: item?.createdByAdmin === true,
     });
   }
@@ -571,6 +612,7 @@ class User {
       name: this.name,
       level: this.level,
       rarity: this.rarity,
+      preset: this.preset,
       logs: (this.logs || []).slice(-MAX_STORED_LOGS_PER_USER),
       createdByAdmin: this.createdByAdmin === true,
     };
@@ -593,14 +635,203 @@ function computeBattlePower(level, hp, attack) {
   return (safeAttack / (safeHp + BATTLE_POWER_K)) + (safeHp / (safeAttack + BATTLE_POWER_K)) + (BATTLE_W_LVL * safeLevel);
 }
 
+function computeMatchmakingScore(user) {
+  const preset = buildProfilePreset(user);
+  const stats = getPresetCombatStats(preset);
+  const power = computeBattlePower(user.level, stats.hp, stats.attack);
+  const jitter = (Math.random() - 0.5) * 0.2;
+  return power + jitter;
+}
+
+function buildUserCombatSnapshot(user) {
+  const preset = buildProfilePreset(user);
+  const stats = getPresetCombatStats(preset);
+  const power = computeBattlePower(user.level, stats.hp, stats.attack);
+  return {
+    user,
+    preset,
+    hp: stats.hp,
+    attack: stats.attack,
+    power,
+  };
+}
+
+function pickWeightedCandidate(items, getWeight) {
+  if (!items.length) {
+    return null;
+  }
+  const weighted = items.map((item) => ({
+    item,
+    weight: Math.max(0, Number(getWeight(item)) || 0),
+  }));
+  const sum = weighted.reduce((acc, entry) => acc + entry.weight, 0);
+  if (sum <= 0) {
+    return items[Math.floor(Math.random() * items.length)] || null;
+  }
+  let roll = Math.random() * sum;
+  for (const entry of weighted) {
+    roll -= entry.weight;
+    if (roll <= 0) {
+      return entry.item;
+    }
+  }
+  return weighted[weighted.length - 1]?.item || null;
+}
+
+function getComponentScore(componentId) {
+  const component = componentById[componentId];
+  if (!component) {
+    return 0;
+  }
+  return (Number(component.stats?.hp) || 0) + (Number(component.stats?.attack) || 0);
+}
+
+function getSlotUpgradePool(slot, currentId) {
+  const currentScore = getComponentScore(currentId);
+  const pool = (randomPoolBySlot[slot] || []).filter((candidateId) => candidateId !== currentId);
+  return pool.filter((candidateId) => getComponentScore(candidateId) > currentScore);
+}
+
+function getSlotDowngradePool(slot, currentId) {
+  const currentScore = getComponentScore(currentId);
+  const pool = (randomPoolBySlot[slot] || []).filter((candidateId) => candidateId !== currentId);
+  return pool.filter((candidateId) => getComponentScore(candidateId) < currentScore);
+}
+
+function tryApplyWinnerDrop(user, powerDelta) {
+  const preset = buildProfilePreset(user);
+  const slotsWithUpgrades = COMPONENT_SLOTS
+    .map((slot) => ({ slot, upgrades: getSlotUpgradePool(slot, preset[slot]) }))
+    .filter((entry) => entry.upgrades.length > 0);
+  if (!slotsWithUpgrades.length) {
+    return null;
+  }
+
+  const dropChance = clampNumber(0.28 + (powerDelta * 0.15), 0.2, 0.8);
+  if (Math.random() > dropChance) {
+    return null;
+  }
+
+  const slotEntry = slotsWithUpgrades[Math.floor(Math.random() * slotsWithUpgrades.length)];
+  const currentScore = getComponentScore(preset[slotEntry.slot]);
+  const pickedUpgrade = pickWeightedCandidate(slotEntry.upgrades, (candidateId) => {
+    const gain = Math.max(1, getComponentScore(candidateId) - currentScore);
+    return 1 / (gain * gain);
+  });
+  if (!pickedUpgrade) {
+    return null;
+  }
+
+  const nextPreset = { ...preset, [slotEntry.slot]: pickedUpgrade };
+  try {
+    validatePresetOrThrow(nextPreset);
+  } catch {
+    return null;
+  }
+
+  user.preset = nextPreset;
+  user.classId = detectPresetDominantBaseClass(nextPreset);
+  return { slot: slotEntry.slot, componentId: pickedUpgrade };
+}
+
+function tryApplyLoserDowngrade(user, powerDelta) {
+  const preset = buildProfilePreset(user);
+  const slotsWithDowngrades = COMPONENT_SLOTS
+    .map((slot) => ({ slot, downgrades: getSlotDowngradePool(slot, preset[slot]) }))
+    .filter((entry) => entry.downgrades.length > 0);
+  if (!slotsWithDowngrades.length) {
+    return null;
+  }
+
+  const downgradeChance = clampNumber(0.16 + (powerDelta * 0.2), 0.1, 0.7);
+  if (Math.random() > downgradeChance) {
+    return null;
+  }
+
+  const slotEntry = slotsWithDowngrades[Math.floor(Math.random() * slotsWithDowngrades.length)];
+  const currentScore = getComponentScore(preset[slotEntry.slot]);
+  const pickedDowngrade = pickWeightedCandidate(slotEntry.downgrades, (candidateId) => {
+    const drop = Math.max(1, currentScore - getComponentScore(candidateId));
+    return 1 / (drop * drop * drop);
+  });
+  if (!pickedDowngrade) {
+    return null;
+  }
+
+  const nextPreset = { ...preset, [slotEntry.slot]: pickedDowngrade };
+  try {
+    validatePresetOrThrow(nextPreset);
+  } catch {
+    return null;
+  }
+
+  user.preset = nextPreset;
+  user.classId = detectPresetDominantBaseClass(nextPreset);
+  return { slot: slotEntry.slot, componentId: pickedDowngrade };
+}
+
+function updateUserAfterBattleVictory(winner, powerDelta) {
+  winner.level = Math.max(1, Number(winner.level) || 1) + 1;
+  const item = tryApplyWinnerDrop(winner, powerDelta);
+  return { item };
+}
+
+function updateUserAfterBattleDefeat(loser, powerDelta) {
+  const item = tryApplyLoserDowngrade(loser, powerDelta);
+  return { item };
+}
+
+function runBattleForPair(firstUser, secondUser) {
+  const first = buildUserCombatSnapshot(firstUser);
+  const second = buildUserCombatSnapshot(secondUser);
+  const pFirst = 1 / (1 + Math.exp(second.power - first.power));
+  const firstWins = Math.random() < pFirst;
+  const winner = firstWins ? first : second;
+  const loser = firstWins ? second : first;
+  const powerDelta = Math.abs(first.power - second.power);
+
+  const winnerUpdates = updateUserAfterBattleVictory(winner.user, powerDelta);
+  const loserUpdates = updateUserAfterBattleDefeat(loser.user, powerDelta);
+  return {
+    winner: winner.user,
+    loser: loser.user,
+    powerDelta,
+    winnerUpdates,
+    loserUpdates,
+  };
+}
+
+function shuffleUsers(users) {
+  const next = [...users];
+  for (let i = next.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = next[i];
+    next[i] = next[j];
+    next[j] = tmp;
+  }
+  return next;
+}
+
+function appendLogToUser(user, logItem) {
+  const nextLogs = [...(user.logs || []), logItem];
+  if (typeof user.withLogs === "function") {
+    user.withLogs(nextLogs);
+  } else {
+    user.logs = nextLogs.slice(-MAX_STORED_LOGS_PER_USER);
+  }
+}
+
 function buildProfilePreset(user) {
   if (!user) {
     return characterPresetByClassId.warrior;
   }
-  if (user.classId === "random") {
-    return randomPreset;
+  if (user.preset && typeof user.preset === "object") {
+    return sanitizePreset(user.preset, user.templateKey, user.classId);
   }
-  return characterPresetByClassId[user.classId] || characterPresetByClassId.warrior;
+  if (user.templateKey === "random") {
+    return buildRandomPreset();
+  }
+  return sanitizePreset(null, user.templateKey, user.classId);
 }
 
 function buildLeaderboardEntries(users) {
@@ -781,9 +1012,11 @@ function clearAllUsers(runtimeStore) {
   persistRuntimeStore(runtimeStore);
 }
 
-function buildCombatLogText() {
-  const isVictory = Math.random() >= 0.5;
-  const combatResult = isVictory ? "victory" : "defeat";
+function buildCombatLogText(forcedResult = null) {
+  const combatResult = forcedResult === "victory" || forcedResult === "defeat"
+    ? forcedResult
+    : (Math.random() >= 0.5 ? "victory" : "defeat");
+  const isVictory = combatResult === "victory";
   const outcomeLabel = isVictory ? "победа" : "поражение";
   const phrase = isVictory
     ? pickRandomFrom(combatOutcomePhrases.victory, "удар прошел")
@@ -1406,17 +1639,20 @@ class ReplyTypewriter {
 }
 
 function renderHeader() {
-  const preset =
-    state.classId === "random"
-      ? randomPreset
-      : characterPresetByClassId[state.classId] || characterPresetByClassId.warrior;
+  const isRandomSession = state.templateKey === "random" || state.classId === "random";
+  const preset = sanitizePreset(
+    state.preset,
+    isRandomSession ? "random" : state.templateKey,
+    state.classId,
+  );
+  state.preset = preset;
   const getLabel = (componentId) => componentNameRuById[componentId] || "Неизвестно";
   const dominantBaseClass = detectPresetDominantBaseClass(preset);
   const dominantBaseClassLabel = baseClassLabelRuById[dominantBaseClass] || "Воин";
   currentCombatStats = getPresetCombatStats(preset);
   let randomAdjectiveMeta = null;
 
-  if (state.classId === "random") {
+  if (isRandomSession) {
     randomAdjectiveMeta = pickRandomAdjectiveMeta(preset);
     const adjectiveClass = randomAdjectiveMeta.isReggae
       ? "character-name-adjective character-name-adjective-reggae"
@@ -1439,7 +1675,7 @@ function renderHeader() {
   torsoSlotEl.textContent = `[${getLabel(preset.torso)}]`;
   legsSlotEl.textContent = `[${getLabel(preset.legs)}]`;
 
-  if (state.classId === "random" && randomAdjectiveMeta) {
+  if (isRandomSession && randomAdjectiveMeta) {
     // For reggae gradient text, use the central stripe color for sprite tint.
     spriteEl.style.color = randomAdjectiveMeta.isReggae
       ? "#fff500"
@@ -1448,9 +1684,9 @@ function renderHeader() {
     spriteEl.style.color = rarityToCssVar[state.rarity] || "var(--rare)";
   }
   try {
-    const rendered = renderPresetToSprite(preset, state.classId);
+    const rendered = renderPresetToSprite(preset, dominantBaseClass);
     latestRenderedSpriteMeta = rendered;
-    if (state.classId === "random" && randomAdjectiveMeta?.isReggae) {
+    if (isRandomSession && randomAdjectiveMeta?.isReggae) {
       spriteEl.classList.add("sprite-reggae");
       spriteEl.innerHTML = '<span class="sprite-grid-content sprite-grid-content-plain sprite-reggae-text"></span>';
       const textLayerEl = spriteEl.querySelector(".sprite-grid-content-plain");
@@ -1661,24 +1897,96 @@ function pushBattleTickLog() {
   if (runtimeStore.gameState.finished || !runtimeStore.gameState.battlesStarted) {
     return;
   }
+  if (runtimeStore.users.length < 2) {
+    return;
+  }
 
-  const selectedType = pickByWeight([
-    { id: "combat", weight: 0.62 },
-    { id: "drop", weight: 0.25 },
-    { id: "levelup", weight: 0.13 },
-  ])?.id || "combat";
-  const combatMeta = selectedType === "combat" ? buildCombatLogText() : null;
-  const text =
-    selectedType === "combat"
-      ? combatMeta.text
-      : pickRandomFrom(logPoolByType[selectedType] || logPoolByType.system, "signal stable");
+  const shuffled = shuffleUsers(runtimeStore.users);
+  const queue = shuffled
+    .map((user) => ({ user, mmScore: computeMatchmakingScore(user) }))
+    .sort((a, b) => a.mmScore - b.mmScore);
 
-  appendLogAndRefresh({
-    time: nowTime(),
-    type: selectedType,
-    ...(combatMeta ? { combatResult: combatMeta.combatResult } : {}),
-    text,
-  });
+  const battleEvents = [];
+  const used = new Set();
+  for (let i = 0; i < queue.length - 1; i += 1) {
+    const left = queue[i];
+    const right = queue[i + 1];
+    if (used.has(left.user.id) || used.has(right.user.id)) {
+      continue;
+    }
+    if (Math.abs(left.mmScore - right.mmScore) > runtimeConfig.matchmakingMaxDelta) {
+      continue;
+    }
+    used.add(left.user.id);
+    used.add(right.user.id);
+    battleEvents.push(runBattleForPair(left.user, right.user));
+  }
+  if (!battleEvents.length) {
+    return;
+  }
+
+  for (const event of battleEvents) {
+    const winnerMeta = buildCombatLogText("victory");
+    const loserMeta = buildCombatLogText("defeat");
+
+    appendLogToUser(event.winner, {
+      time: nowTime(),
+      type: "combat",
+      combatResult: "victory",
+      text: winnerMeta.text,
+    });
+    appendLogToUser(event.winner, {
+      time: nowTime(),
+      type: "levelup",
+      text: `уровень повышен: Lv ${event.winner.level}`,
+    });
+    if (event.winnerUpdates.item) {
+      appendLogToUser(event.winner, {
+        time: nowTime(),
+        type: "drop",
+        text: `дроп: улучшен слот ${event.winnerUpdates.item.slot}`,
+      });
+    }
+
+    appendLogToUser(event.loser, {
+      time: nowTime(),
+      type: "combat",
+      combatResult: "defeat",
+      text: loserMeta.text,
+    });
+    if (event.loserUpdates.item) {
+      appendLogToUser(event.loser, {
+        time: nowTime(),
+        type: "drop",
+        text: `потеря: ослаблен слот ${event.loserUpdates.item.slot}`,
+      });
+    }
+  }
+
+  const activeUser = findUserById(runtimeStore.users, activeUserId);
+  if (activeUser) {
+    state.logs = [...(activeUser.logs || [])].slice(-MAX_UI_LOGS);
+    state.level = activeUser.level;
+    state.classId = activeUser.classId;
+    state.preset = sanitizePreset(activeUser.preset, activeUser.templateKey, activeUser.classId);
+  }
+
+  if (!runtimeStore.gameState.finished) {
+    const leaderboard = buildLeaderboardEntries(runtimeStore.users);
+    applyRatingsFromLeaderboard(runtimeStore.users, leaderboard);
+    if (activeUser) {
+      state.rating = activeUser.rating;
+    }
+  }
+  persistRuntimeStore(runtimeStore);
+
+  renderHeader();
+  renderStats();
+  renderLogs();
+
+  const lastLog = state.logs[state.logs.length - 1] || { type: "system" };
+  const nextReply = character.getReplyForLog(lastLog);
+  replyTypewriter.eraseAndType(nextReply);
 }
 
 function centerFighterToViewport() {
