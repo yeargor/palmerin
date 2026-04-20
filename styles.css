@@ -374,10 +374,10 @@ body {
 
 .fighter-quote {
   position: absolute;
-  top: 8px;
-  left: 12px;
-  right: 12px;
-  max-width: calc(100% - 24px);
+  top: 10px;
+  left: 14px;
+  right: 14px;
+  max-width: calc(100% - 28px);
   color: var(--text);
   font-size: clamp(14px, 3.4vw, 19px);
   line-height: 1.2;
