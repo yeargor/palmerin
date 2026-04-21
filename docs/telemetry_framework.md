@@ -177,3 +177,101 @@ rg '"pairs":\[\],"decisions"' artifacts/battle/battle-events.jsonl
 - `runId` увеличивается при старте битв (`[start battles]`), `tickId` хранится в runtime store и не сбрасывается случайным reload.
 - Если сервер переключён на `python http.server`, telemetry файл не пополняется.
 
+
+## 11. Режим симуляции (автоматический прогон)
+
+Добавлен скрипт симуляции, чтобы не кликать UI вручную в каждом прогоне.
+
+Скрипт:
+- `scripts/simulate-battle-run.mjs`
+
+Что делает скрипт:
+1. Очищает `artifacts/battle/battle-events.jsonl`.
+2. Открывает админку (`?view=admin&startapp=random`).
+3. Нажимает `[clear users]` (если доступно).
+4. Создаёт заданное количество пользователей (`[new user]`).
+5. Запускает битвы (`[start battles]`).
+6. Открывает сессию первого пользователя (боевой цикл тикает в `viewprofile`, а не в admin view).
+7. Ждёт заданное время.
+8. Возвращается в админку и завершает игру (`[finish game]`) для фиксации финального состояния.
+9. По умолчанию выполняет post-run cleanup (`[clear users]`), чтобы не смешивать прогоны.
+
+Правило cleanup:
+- Очистка пользователей после симуляции должна быть включена по умолчанию.
+- Отключать cleanup допускается только при явной задаче сохранить пользователей после прогона.
+
+### 11.1 Smoke-проверка
+
+Быстрый smoke-test (короткий прогон, минимум времени):
+```bash
+npm run simulate:battle:smoke
+```
+
+Параметры smoke по умолчанию:
+- `users=3`
+- `duration_ms=8000`
+
+### 11.2 Полный симуляционный прогон
+
+Базовый запуск:
+```bash
+npm run simulate:battle
+```
+
+Кастомные параметры:
+```bash
+node scripts/simulate-battle-run.mjs --users 8 --duration-ms 120000
+node scripts/simulate-battle-run.mjs --users 20 --duration-ms 180000
+```
+
+Дополнительно:
+- `--base-url http://127.0.0.1:4173`
+- `--headed` (запуск браузера с UI)
+- `--no-cleanup-after` (оставить пользователей после прогона; использовать только при явном запросе)
+
+## 12. Автоанализ telemetry-файла
+
+Скрипт:
+- `scripts/analyze-telemetry.mjs`
+
+Запуск:
+```bash
+npm run analyze:telemetry
+```
+
+Что выводит:
+- количество событий/tick'ов;
+- число завершений игры;
+- суммарное число боёв;
+- fights/wins/winrate по каждому пользователю;
+- финальный лидерборд.
+
+## 13. Рекомендуемый воспроизводимый флоу
+
+1. Поднять сервер с логированием:
+```bash
+npm run serve:logs
+```
+
+2. Запустить короткий smoke:
+```bash
+npm run simulate:battle:smoke
+```
+
+3. Проверить, что telemetry собирается:
+```bash
+wc -l artifacts/battle/battle-events.jsonl
+tail -n 3 artifacts/battle/battle-events.jsonl
+```
+
+4. Запустить полноценный прогон (когда нужно):
+```bash
+node scripts/simulate-battle-run.mjs --users 8 --duration-ms 120000
+```
+
+5. Снять summary:
+```bash
+npm run analyze:telemetry
+```
+
+6. При необходимости повторить на 10/20/30/100 игроках, сравнивая отчёты.
