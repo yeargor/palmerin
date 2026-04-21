@@ -1,0 +1,35 @@
+127.0.0.1 - - [21/Apr/2026 09:52:50] "GET /?startapp=mage HTTP/1.1" 200 -
+127.0.0.1 - - [21/Apr/2026 09:52:50] "GET /styles.css HTTP/1.1" 200 -
+127.0.0.1 - - [21/Apr/2026 09:52:50] "GET /app.js HTTP/1.1" 200 -
+127.0.0.1 - - [21/Apr/2026 09:52:50] "GET /src/sprite-constructor.js HTTP/1.1" 304 -
+127.0.0.1 - - [21/Apr/2026 09:52:50] "GET /src/character-quotes.js HTTP/1.1" 200 -
+127.0.0.1 - - [21/Apr/2026 09:53:03] "GET /?startapp=mage&view=admin HTTP/1.1" 200 -
+127.0.0.1 - - [21/Apr/2026 09:53:06] "GET /?startapp=mage&view=profiles HTTP/1.1" 200 -
+127.0.0.1 - - [21/Apr/2026 09:53:08] "GET /?startapp=random HTTP/1.1" 200 -
+127.0.0.1 - - [21/Apr/2026 09:53:10] "GET /?startapp=random HTTP/1.1" 304 -
+127.0.0.1 - - [21/Apr/2026 09:53:12] "GET /?startapp=random HTTP/1.1" 304 -
+127.0.0.1 - - [21/Apr/2026 09:53:14] "GET /?startapp=random HTTP/1.1" 304 -
+127.0.0.1 - - [21/Apr/2026 09:53:16] "GET /?startapp=random HTTP/1.1" 304 -
+127.0.0.1 - - [21/Apr/2026 09:53:18] "GET /?startapp=random HTTP/1.1" 304 -
+127.0.0.1 - - [21/Apr/2026 09:53:19] "GET /?startapp=random HTTP/1.1" 304 -
+127.0.0.1 - - [21/Apr/2026 09:53:19] "GET /?startapp=random HTTP/1.1" 304 -
+127.0.0.1 - - [21/Apr/2026 09:53:20] "GET /?startapp=random HTTP/1.1" 304 -
+127.0.0.1 - - [21/Apr/2026 09:53:21] "GET /?startapp=random HTTP/1.1" 304 -
+127.0.0.1 - - [21/Apr/2026 09:53:21] "GET /?startapp=random HTTP/1.1" 304 -
+127.0.0.1 - - [21/Apr/2026 09:53:22] "GET /?startapp=random HTTP/1.1" 304 -
+127.0.0.1 - - [21/Apr/2026 09:53:23] "GET /?startapp=random HTTP/1.1" 304 -
+127.0.0.1 - - [21/Apr/2026 09:53:24] "GET /?startapp=random HTTP/1.1" 304 -
+127.0.0.1 - - [21/Apr/2026 09:53:47] "GET /?startapp=random HTTP/1.1" 304 -
+Serving HTTP on 0.0.0.0 port 4173 (http://0.0.0.0:4173/) ...
+
+Keyboard interrupt received, exiting.
+127.0.0.1 - - [21/Apr/2026 20:28:13] "GET /?startapp=mage HTTP/1.1" 200 -
+127.0.0.1 - - [21/Apr/2026 20:28:13] "GET /styles.css HTTP/1.1" 200 -
+127.0.0.1 - - [21/Apr/2026 20:28:13] "GET /app.js HTTP/1.1" 200 -
+127.0.0.1 - - [21/Apr/2026 20:28:13] "GET /src/sprite-constructor.js HTTP/1.1" 304 -
+127.0.0.1 - - [21/Apr/2026 20:28:13] "GET /src/character-quotes.js HTTP/1.1" 304 -
+127.0.0.1 - - [21/Apr/2026 20:28:25] "GET /?startapp=mage&view=admin HTTP/1.1" 200 -
+127.0.0.1 - - [21/Apr/2026 20:28:29] "GET /?startapp=mage&view=profiles HTTP/1.1" 200 -
+127.0.0.1 - - [21/Apr/2026 20:28:30] "GET /?startapp=random HTTP/1.1" 200 -
+127.0.0.1 - - [21/Apr/2026 20:28:33] "GET /?startapp=random HTTP/1.1" 304 -
+127.0.0.1 - - [21/Apr/2026 20:28:37] "GET /?startapp=random HTTP/1.1" 304 -
