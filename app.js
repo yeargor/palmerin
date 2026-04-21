@@ -749,8 +749,7 @@ function computeMatchmakingScore(user, rngTrace = null) {
   const power = computeBattlePower(user.level, stats.hp, stats.attack);
   const jitterRoll = drawRandom(rngTrace, `mm.jitter.user_${user.id}`);
   const jitter = (jitterRoll - 0.5) * 0.2;
-  const participationBias = (Number(user.battlesTotal) || 0) * 0.04;
-  return power + jitter + participationBias;
+  return power + jitter;
 }
 
 function buildUserCombatSnapshot(user) {
@@ -1149,6 +1148,8 @@ function buildBattlePairs(queue, maxDelta) {
   const pairs = [];
   const unmatchedIds = new Set(queue.map((entry) => entry.user.id));
   const queueById = new Map(queue.map((entry) => [entry.user.id, entry]));
+  const relaxedDeltaLevels = [maxDelta, maxDelta + 0.4, maxDelta + 0.8];
+  let effectiveMaxDelta = maxDelta;
   const priorityQueue = [...queue].sort((a, b) => {
     const battlesA = Number(a.user.battlesTotal) || 0;
     const battlesB = Number(b.user.battlesTotal) || 0;
@@ -1166,73 +1167,98 @@ function buildBattlePairs(queue, maxDelta) {
     return a.user.id - b.user.id;
   });
 
-  for (const left of priorityQueue) {
-    if (!unmatchedIds.has(left.user.id)) {
-      continue;
-    }
-    let best = null;
-    let nearest = null;
-    for (const rightUserId of unmatchedIds) {
-      if (rightUserId === left.user.id) {
+  for (const currentMaxDelta of relaxedDeltaLevels) {
+    let acceptedThisPass = 0;
+    for (const left of priorityQueue) {
+      if (!unmatchedIds.has(left.user.id)) {
         continue;
       }
-      const right = queueById.get(rightUserId);
-      const delta = Math.abs(left.mmScore - right.mmScore);
-      if (!nearest || delta < nearest.delta) {
-        nearest = { entry: right, delta };
-      }
-      if (delta > maxDelta) {
-        continue;
-      }
-      if (!best || delta < best.delta) {
-        best = { entry: right, delta };
-        continue;
-      }
-      if (best && delta === best.delta) {
-        const bestBattles = Number(best.entry.user.battlesTotal) || 0;
-        const nextBattles = Number(right.user.battlesTotal) || 0;
-        if (nextBattles < bestBattles) {
+      let best = null;
+      for (const rightUserId of unmatchedIds) {
+        if (rightUserId === left.user.id) {
+          continue;
+        }
+        const right = queueById.get(rightUserId);
+        const delta = Math.abs(left.mmScore - right.mmScore);
+        if (delta > currentMaxDelta) {
+          continue;
+        }
+        if (!best || delta < best.delta) {
           best = { entry: right, delta };
           continue;
         }
-        if (nextBattles === bestBattles && right.user.id < best.entry.user.id) {
-          best = { entry: right, delta };
+        if (best && delta === best.delta) {
+          const bestBattles = Number(best.entry.user.battlesTotal) || 0;
+          const nextBattles = Number(right.user.battlesTotal) || 0;
+          if (nextBattles < bestBattles) {
+            best = { entry: right, delta };
+            continue;
+          }
+          if (nextBattles === bestBattles && right.user.id < best.entry.user.id) {
+            best = { entry: right, delta };
+          }
         }
       }
-    }
-
-    if (!best) {
-      if (nearest) {
-        pairDecisions.push({
-          leftUserId: left.user.id,
-          rightUserId: nearest.entry.user.id,
-          leftMmScore: Number(left.mmScore.toFixed(4)),
-          rightMmScore: Number(nearest.entry.mmScore.toFixed(4)),
-          delta: Number(nearest.delta.toFixed(4)),
-          decision: "rejected",
-          reason: "delta_exceeded",
-        });
+      if (!best) {
+        continue;
       }
-      continue;
-    }
 
-    unmatchedIds.delete(left.user.id);
-    unmatchedIds.delete(best.entry.user.id);
-    pairDecisions.push({
-      leftUserId: left.user.id,
-      rightUserId: best.entry.user.id,
-      leftMmScore: Number(left.mmScore.toFixed(4)),
-      rightMmScore: Number(best.entry.mmScore.toFixed(4)),
-      delta: Number(best.delta.toFixed(4)),
-      decision: "accepted",
-    });
-    pairs.push({ left, right: best.entry });
+      unmatchedIds.delete(left.user.id);
+      unmatchedIds.delete(best.entry.user.id);
+      pairDecisions.push({
+        leftUserId: left.user.id,
+        rightUserId: best.entry.user.id,
+        leftMmScore: Number(left.mmScore.toFixed(4)),
+        rightMmScore: Number(best.entry.mmScore.toFixed(4)),
+        delta: Number(best.delta.toFixed(4)),
+        decision: "accepted",
+      });
+      pairs.push({ left, right: best.entry });
+      acceptedThisPass += 1;
+    }
+    if (acceptedThisPass > 0) {
+      effectiveMaxDelta = currentMaxDelta;
+    }
+    if (unmatchedIds.size < 2) {
+      break;
+    }
+  }
+
+  if (unmatchedIds.size >= 2) {
+    const unmatchedQueue = [...unmatchedIds]
+      .map((id) => queueById.get(id))
+      .filter(Boolean);
+    for (const left of unmatchedQueue) {
+      let nearest = null;
+      for (const right of unmatchedQueue) {
+        if (left.user.id === right.user.id) {
+          continue;
+        }
+        const delta = Math.abs(left.mmScore - right.mmScore);
+        if (!nearest || delta < nearest.delta) {
+          nearest = { entry: right, delta };
+        }
+      }
+      if (!nearest) {
+        continue;
+      }
+      pairDecisions.push({
+        leftUserId: left.user.id,
+        rightUserId: nearest.entry.user.id,
+        leftMmScore: Number(left.mmScore.toFixed(4)),
+        rightMmScore: Number(nearest.entry.mmScore.toFixed(4)),
+        delta: Number(nearest.delta.toFixed(4)),
+        decision: "rejected",
+        reason: "delta_exceeded",
+      });
+    }
   }
 
   return {
     pairs,
     pairDecisions,
     unmatchedUserIds: [...unmatchedIds].sort((a, b) => a - b),
+    effectiveMaxDelta,
   };
 }
 
@@ -2401,13 +2427,14 @@ function pushBattleTickLog() {
   const queue = shuffled
     .map((user) => ({ user, mmScore: computeMatchmakingScore(user, matchmakingRngTrace) }))
     .sort((a, b) => a.mmScore - b.mmScore);
-  const matchmakingPool = buildMatchmakingPoolSnapshot(queue, runtimeConfig.matchmakingMaxDelta);
 
   const battleEvents = [];
   const leaderboardBefore = buildLeaderboardEntries(runtimeStore.users);
   const pairingResult = buildBattlePairs(queue, runtimeConfig.matchmakingMaxDelta);
   const pairDecisions = pairingResult.pairDecisions;
   const unmatchedUserIds = pairingResult.unmatchedUserIds;
+  const effectiveMaxDelta = Number(pairingResult.effectiveMaxDelta || runtimeConfig.matchmakingMaxDelta);
+  const matchmakingPool = buildMatchmakingPoolSnapshot(queue, effectiveMaxDelta);
   for (const pairing of pairingResult.pairs) {
     battleEvents.push(runBattleForPair(pairing.left, pairing.right));
   }
@@ -2420,6 +2447,7 @@ function pushBattleTickLog() {
         systemLogIntervalMs: runtimeConfig.systemLogIntervalMs,
         battleTickIntervalMs: runtimeConfig.battleTickIntervalMs,
         matchmakingMaxDelta: runtimeConfig.matchmakingMaxDelta,
+        effectiveMaxDelta,
       },
       matchmaking: {
         queue: queue.map((entry) => ({
@@ -2528,6 +2556,7 @@ function pushBattleTickLog() {
       systemLogIntervalMs: runtimeConfig.systemLogIntervalMs,
       battleTickIntervalMs: runtimeConfig.battleTickIntervalMs,
       matchmakingMaxDelta: runtimeConfig.matchmakingMaxDelta,
+      effectiveMaxDelta,
     },
     matchmaking: {
       queue: queue.map((entry) => ({
