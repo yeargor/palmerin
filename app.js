@@ -146,6 +146,14 @@ const DEFAULT_RUNTIME_CONFIG = Object.freeze({
   battleTickIntervalMs: 3500,
   matchmakingMaxDelta: 1.75,
 });
+const MATCHMAKING_PRIORITY_QUANTILE = 0.25;
+const MATCHMAKING_STALE_TICKS = 3;
+const MATCHMAKING_RELAX_OFFSETS = Object.freeze([0, 0.4, 0.8]);
+const MATCHMAKING_FORCED_PAIR_CAP = 1;
+const LEVEL_GAIN_UPSET_THRESHOLD = 0.35;
+const LEVEL_GAIN_BALANCED_THRESHOLD = 0.6;
+const LOSER_STREAK_SHIELD_PER_LOSS = 0.06;
+const LOSER_STREAK_SHIELD_MAX = 0.3;
 const MIN_INTERVAL_MS = 1000;
 const MAX_INTERVAL_MS = 300000;
 const MAX_STORED_LOGS_PER_USER = 20;
@@ -614,6 +622,10 @@ class User {
     colorTier = null,
     adjective = "",
     createdByAdmin = true,
+    battlesTotal = 0,
+    lastBattleTick = 0,
+    winStreak = 0,
+    loseStreak = 0,
   }) {
     this.id = Number.isFinite(id) ? Math.max(0, Math.floor(id)) : 0;
     this.templateKey = profileTemplateByParam[templateKey] ? templateKey : "club";
@@ -628,6 +640,10 @@ class User {
     this.adjective = adjective || "";
     this.logs = [...(logs || [])].slice(-MAX_STORED_LOGS_PER_USER);
     this.createdByAdmin = createdByAdmin === true;
+    this.battlesTotal = Math.max(0, Number(battlesTotal) || 0);
+    this.lastBattleTick = Math.max(0, Number(lastBattleTick) || 0);
+    this.winStreak = Math.max(0, Number(winStreak) || 0);
+    this.loseStreak = Math.max(0, Number(loseStreak) || 0);
   }
 
   static fromTemplate(templateKey, userId, createdByAdmin = true) {
@@ -667,6 +683,10 @@ class User {
       colorTier: item?.colorTier,
       adjective: item?.adjective,
       createdByAdmin: item?.createdByAdmin === true,
+      battlesTotal: item?.battlesTotal,
+      lastBattleTick: item?.lastBattleTick,
+      winStreak: item?.winStreak,
+      loseStreak: item?.loseStreak,
     });
   }
 
@@ -687,6 +707,10 @@ class User {
       adjective: this.adjective,
       logs: (this.logs || []).slice(-MAX_STORED_LOGS_PER_USER),
       createdByAdmin: this.createdByAdmin === true,
+      battlesTotal: this.battlesTotal,
+      lastBattleTick: this.lastBattleTick,
+      winStreak: this.winStreak,
+      loseStreak: this.loseStreak,
     };
   }
 }
@@ -858,7 +882,9 @@ function tryApplyLoserDowngrade(user, powerDelta, rngTrace = null) {
     return { item: null, meta: { reason: "no_downgrade_pool" } };
   }
 
-  const downgradeChance = clampNumber(0.16 + (powerDelta * 0.2), 0.1, 0.7);
+  const loseStreak = Math.max(0, Number(user.loseStreak) || 0);
+  const streakShield = Math.min(LOSER_STREAK_SHIELD_MAX, loseStreak * LOSER_STREAK_SHIELD_PER_LOSS);
+  const downgradeChance = clampNumber((0.16 + (powerDelta * 0.2)) - streakShield, 0.04, 0.7);
   const downgradeRoll = drawRandom(rngTrace, "loser.downgrade.roll");
   if (downgradeRoll > downgradeChance) {
     return {
@@ -867,6 +893,7 @@ function tryApplyLoserDowngrade(user, powerDelta, rngTrace = null) {
         reason: "chance_failed",
         downgradeChance: Number(downgradeChance.toFixed(4)),
         downgradeRoll: Number(downgradeRoll.toFixed(6)),
+        streakShield: Number(streakShield.toFixed(4)),
       },
     };
   }
@@ -898,12 +925,26 @@ function tryApplyLoserDowngrade(user, powerDelta, rngTrace = null) {
       downgradeChance: Number(downgradeChance.toFixed(4)),
       downgradeRoll: Number(downgradeRoll.toFixed(6)),
       slotPoolSize: slotsWithDowngrades.length,
+      streakShield: Number(streakShield.toFixed(4)),
     },
   };
 }
 
-function updateUserAfterBattleVictory(winner, powerDelta, rngTrace = null) {
-  winner.level = Math.max(1, Number(winner.level) || 1) + 1;
+function computeWinnerLevelGain(winnerWinProbability) {
+  if (winnerWinProbability <= LEVEL_GAIN_UPSET_THRESHOLD) {
+    return 2;
+  }
+  if (winnerWinProbability <= LEVEL_GAIN_BALANCED_THRESHOLD) {
+    return 1;
+  }
+  return 0;
+}
+
+function updateUserAfterBattleVictory(winner, powerDelta, winnerWinProbability, rngTrace = null) {
+  const levelGain = computeWinnerLevelGain(winnerWinProbability);
+  winner.level = Math.max(1, Number(winner.level) || 1) + levelGain;
+  winner.winStreak = (Number(winner.winStreak) || 0) + 1;
+  winner.loseStreak = 0;
   const dropResult = tryApplyWinnerDrop(winner, powerDelta, rngTrace);
   const item = dropResult.item;
   let colorChanged = false;
@@ -938,16 +979,26 @@ function updateUserAfterBattleVictory(winner, powerDelta, rngTrace = null) {
       };
     }
   }
-  return { item, colorChanged, dropMeta: dropResult.meta, colorMeta };
+  return {
+    item,
+    colorChanged,
+    levelGain,
+    winnerWinProbability: Number(winnerWinProbability.toFixed(4)),
+    dropMeta: dropResult.meta,
+    colorMeta,
+  };
 }
 
-function updateUserAfterBattleDefeat(loser, powerDelta, rngTrace = null) {
+function updateUserAfterBattleDefeat(loser, powerDelta, loserWinProbability, rngTrace = null) {
+  loser.winStreak = 0;
+  loser.loseStreak = (Number(loser.loseStreak) || 0) + 1;
   const downgradeResult = tryApplyLoserDowngrade(loser, powerDelta, rngTrace);
   const item = downgradeResult.item;
   let colorChanged = false;
   let colorMeta = { reason: "not_random_template" };
   if (loser.templateKey === "random") {
-    const downChance = clampNumber(0.14 + (powerDelta * 0.1), 0.06, 0.45);
+    const streakShield = Math.min(LOSER_STREAK_SHIELD_MAX, (Number(loser.loseStreak) || 0) * LOSER_STREAK_SHIELD_PER_LOSS);
+    const downChance = clampNumber((0.14 + (powerDelta * 0.1)) - streakShield, 0.02, 0.45);
     const downRoll = drawRandom(rngTrace, "loser.color.roll");
     if (downRoll < downChance) {
       const nextTier = stepColorTier(loser.colorTier || DEFAULT_RANDOM_TIER, -1);
@@ -960,12 +1011,14 @@ function updateUserAfterBattleDefeat(loser, powerDelta, rngTrace = null) {
           downChance: Number(downChance.toFixed(4)),
           downRoll: Number(downRoll.toFixed(6)),
           nextTier,
+          streakShield: Number(streakShield.toFixed(4)),
         };
       } else {
         colorMeta = {
           reason: "at_floor",
           downChance: Number(downChance.toFixed(4)),
           downRoll: Number(downRoll.toFixed(6)),
+          streakShield: Number(streakShield.toFixed(4)),
         };
       }
     } else {
@@ -973,13 +1026,21 @@ function updateUserAfterBattleDefeat(loser, powerDelta, rngTrace = null) {
         reason: "chance_failed",
         downChance: Number(downChance.toFixed(4)),
         downRoll: Number(downRoll.toFixed(6)),
+        streakShield: Number(streakShield.toFixed(4)),
       };
     }
   }
-  return { item, colorChanged, downgradeMeta: downgradeResult.meta, colorMeta };
+  return {
+    item,
+    colorChanged,
+    levelGain: 0,
+    loserWinProbability: Number(loserWinProbability.toFixed(4)),
+    downgradeMeta: downgradeResult.meta,
+    colorMeta,
+  };
 }
 
-function runBattleForPair(firstEntry, secondEntry) {
+function runBattleForPair(firstEntry, secondEntry, pairingMeta = null) {
   const rngTrace = [];
   const firstUser = firstEntry.user;
   const secondUser = secondEntry.user;
@@ -996,9 +1057,11 @@ function runBattleForPair(firstEntry, secondEntry) {
   const powerDelta = Math.abs(first.power - second.power);
   const winnerBefore = firstWins ? firstBefore : secondBefore;
   const loserBefore = firstWins ? secondBefore : firstBefore;
+  const winnerWinProbability = firstWins ? pFirst : pSecond;
+  const loserWinProbability = firstWins ? pSecond : pFirst;
 
-  const winnerUpdates = updateUserAfterBattleVictory(winner.user, powerDelta, rngTrace);
-  const loserUpdates = updateUserAfterBattleDefeat(loser.user, powerDelta, rngTrace);
+  const winnerUpdates = updateUserAfterBattleVictory(winner.user, powerDelta, winnerWinProbability, rngTrace);
+  const loserUpdates = updateUserAfterBattleDefeat(loser.user, powerDelta, loserWinProbability, rngTrace);
   return {
     pair: {
       leftUserId: firstUser.id,
@@ -1007,6 +1070,10 @@ function runBattleForPair(firstEntry, secondEntry) {
       rightMmScore: Number(secondEntry.mmScore.toFixed(4)),
       leftWinProbability: Number(pFirst.toFixed(4)),
       rightWinProbability: Number(pSecond.toFixed(4)),
+      matchKind: pairingMeta?.matchKind || "strict",
+      deltaLimitUsed: Number((pairingMeta?.deltaLimitUsed ?? 0).toFixed(4)),
+      leftWasPriority: Boolean(pairingMeta?.leftWasPriority),
+      rightWasPriority: Boolean(pairingMeta?.rightWasPriority),
     },
     winner: winner.user,
     loser: loser.user,
@@ -1081,6 +1148,8 @@ function computeStateDiff(before, after) {
   const fieldPairs = [
     ["level", before.level, after.level],
     ["rating", before.rating, after.rating],
+    ["winStreak", before.winStreak, after.winStreak],
+    ["loseStreak", before.loseStreak, after.loseStreak],
     ["classId", before.classId, after.classId],
     ["colorTier", before.colorTier, after.colorTier],
     ["adjective", before.adjective, after.adjective],
@@ -1129,9 +1198,235 @@ function buildMatchmakingPoolSnapshot(queue, maxDelta) {
       userId: entry.user.id,
       name: entry.user.name,
       mmScore: Number(entry.mmScore.toFixed(4)),
+      battlesTotal: Number(entry.user.battlesTotal) || 0,
       candidates,
     };
   });
+}
+
+function buildBattlePairs(queue, maxDelta, currentTick) {
+  const pairDecisions = [];
+  const pairs = [];
+  const unmatchedIds = new Set(queue.map((entry) => entry.user.id));
+  const queueById = new Map(queue.map((entry) => [entry.user.id, entry]));
+  const sortedBattleTotals = queue.map((entry) => Number(entry.user.battlesTotal) || 0).sort((a, b) => a - b);
+  const quantileIndex = Math.max(0, Math.floor((sortedBattleTotals.length - 1) * MATCHMAKING_PRIORITY_QUANTILE));
+  const lowBattleThreshold = sortedBattleTotals[quantileIndex] ?? 0;
+  const isPriorityUser = (entry) => {
+    const battles = Number(entry.user.battlesTotal) || 0;
+    const staleTicks = Math.max(0, Number(currentTick) - (Number(entry.user.lastBattleTick) || 0));
+    return battles <= lowBattleThreshold || staleTicks >= MATCHMAKING_STALE_TICKS;
+  };
+  const relaxedDeltaLevels = MATCHMAKING_RELAX_OFFSETS.map((offset) => Number((maxDelta + offset).toFixed(4)));
+  let effectiveMaxDelta = maxDelta;
+  let forcedPairsCount = 0;
+  const passStats = [];
+  const priorityQueue = [...queue].sort((a, b) => {
+    const battlesA = Number(a.user.battlesTotal) || 0;
+    const battlesB = Number(b.user.battlesTotal) || 0;
+    if (battlesA !== battlesB) {
+      return battlesA - battlesB;
+    }
+    const lastTickA = Number(a.user.lastBattleTick) || 0;
+    const lastTickB = Number(b.user.lastBattleTick) || 0;
+    if (lastTickA !== lastTickB) {
+      return lastTickA - lastTickB;
+    }
+    if (a.mmScore !== b.mmScore) {
+      return a.mmScore - b.mmScore;
+    }
+    return a.user.id - b.user.id;
+  });
+
+  for (let passIndex = 0; passIndex < relaxedDeltaLevels.length; passIndex += 1) {
+    const currentMaxDelta = relaxedDeltaLevels[passIndex];
+    const onlyPrioritySet = passIndex > 0;
+    let acceptedThisPass = 0;
+    for (const left of priorityQueue) {
+      if (!unmatchedIds.has(left.user.id)) {
+        continue;
+      }
+      const leftPriority = isPriorityUser(left);
+      if (onlyPrioritySet && !leftPriority) {
+        continue;
+      }
+      let best = null;
+      for (const rightUserId of unmatchedIds) {
+        if (rightUserId === left.user.id) {
+          continue;
+        }
+        const right = queueById.get(rightUserId);
+        const rightPriority = isPriorityUser(right);
+        if (onlyPrioritySet && !(leftPriority || rightPriority)) {
+          continue;
+        }
+        const delta = Math.abs(left.mmScore - right.mmScore);
+        if (delta > currentMaxDelta) {
+          continue;
+        }
+        if (!best || delta < best.delta) {
+          best = { entry: right, delta, rightPriority };
+          continue;
+        }
+        if (best && delta === best.delta) {
+          const bestBattles = Number(best.entry.user.battlesTotal) || 0;
+          const nextBattles = Number(right.user.battlesTotal) || 0;
+          if (nextBattles < bestBattles) {
+            best = { entry: right, delta };
+            continue;
+          }
+          if (nextBattles === bestBattles && right.user.id < best.entry.user.id) {
+            best = { entry: right, delta, rightPriority };
+          }
+        }
+      }
+      if (!best) {
+        continue;
+      }
+
+      unmatchedIds.delete(left.user.id);
+      unmatchedIds.delete(best.entry.user.id);
+      pairDecisions.push({
+        leftUserId: left.user.id,
+        rightUserId: best.entry.user.id,
+        leftMmScore: Number(left.mmScore.toFixed(4)),
+        rightMmScore: Number(best.entry.mmScore.toFixed(4)),
+        delta: Number(best.delta.toFixed(4)),
+        decision: "accepted",
+        matchKind: passIndex === 0 ? "strict" : "relaxed",
+        deltaLimitUsed: Number(currentMaxDelta.toFixed(4)),
+        leftWasPriority: leftPriority,
+        rightWasPriority: best.rightPriority,
+      });
+      pairs.push({
+        left,
+        right: best.entry,
+        meta: {
+          matchKind: passIndex === 0 ? "strict" : "relaxed",
+          deltaLimitUsed: currentMaxDelta,
+          leftWasPriority: leftPriority,
+          rightWasPriority: best.rightPriority,
+        },
+      });
+      acceptedThisPass += 1;
+    }
+    passStats.push({
+      passIndex: passIndex + 1,
+      deltaLimit: Number(currentMaxDelta.toFixed(4)),
+      onlyPrioritySet,
+      pairsAccepted: acceptedThisPass,
+    });
+    if (acceptedThisPass > 0) {
+      effectiveMaxDelta = currentMaxDelta;
+    }
+    if (unmatchedIds.size < 2) {
+      break;
+    }
+  }
+
+  if (unmatchedIds.size >= 2) {
+    const unmatchedQueue = [...unmatchedIds]
+      .map((id) => queueById.get(id))
+      .filter(Boolean);
+    const forcedCandidates = unmatchedQueue.filter((entry) => isPriorityUser(entry));
+    for (const left of forcedCandidates) {
+      if (forcedPairsCount >= MATCHMAKING_FORCED_PAIR_CAP) {
+        break;
+      }
+      if (!unmatchedIds.has(left.user.id)) {
+        continue;
+      }
+      let best = null;
+      for (const rightUserId of unmatchedIds) {
+        if (rightUserId === left.user.id) {
+          continue;
+        }
+        const right = queueById.get(rightUserId);
+        const delta = Math.abs(left.mmScore - right.mmScore);
+        if (!best || delta < best.delta) {
+          best = { entry: right, delta };
+        }
+      }
+      if (!best) {
+        continue;
+      }
+      unmatchedIds.delete(left.user.id);
+      unmatchedIds.delete(best.entry.user.id);
+      pairDecisions.push({
+        leftUserId: left.user.id,
+        rightUserId: best.entry.user.id,
+        leftMmScore: Number(left.mmScore.toFixed(4)),
+        rightMmScore: Number(best.entry.mmScore.toFixed(4)),
+        delta: Number(best.delta.toFixed(4)),
+        decision: "accepted",
+        matchKind: "forced",
+        deltaLimitUsed: Number(best.delta.toFixed(4)),
+        leftWasPriority: true,
+        rightWasPriority: isPriorityUser(best.entry),
+      });
+      pairs.push({
+        left,
+        right: best.entry,
+        meta: {
+          matchKind: "forced",
+          deltaLimitUsed: best.delta,
+          leftWasPriority: true,
+          rightWasPriority: isPriorityUser(best.entry),
+        },
+      });
+      forcedPairsCount += 1;
+      effectiveMaxDelta = Math.max(effectiveMaxDelta, best.delta);
+    }
+
+    const unmatchedAfterForced = [...unmatchedIds]
+      .map((id) => queueById.get(id))
+      .filter(Boolean);
+    for (const left of unmatchedAfterForced) {
+      let nearest = null;
+      for (const right of unmatchedAfterForced) {
+        if (left.user.id === right.user.id) {
+          continue;
+        }
+        const delta = Math.abs(left.mmScore - right.mmScore);
+        if (!nearest || delta < nearest.delta) {
+          nearest = { entry: right, delta };
+        }
+      }
+      if (!nearest) {
+        continue;
+      }
+      pairDecisions.push({
+        leftUserId: left.user.id,
+        rightUserId: nearest.entry.user.id,
+        leftMmScore: Number(left.mmScore.toFixed(4)),
+        rightMmScore: Number(nearest.entry.mmScore.toFixed(4)),
+        delta: Number(nearest.delta.toFixed(4)),
+        decision: "rejected",
+        reason: forcedPairsCount >= MATCHMAKING_FORCED_PAIR_CAP ? "forced_cap_reached" : "delta_exceeded",
+      });
+    }
+  }
+
+  const unmatchedDetails = [...unmatchedIds]
+    .map((id) => queueById.get(id))
+    .filter(Boolean)
+    .map((entry) => ({
+      userId: entry.user.id,
+      name: entry.user.name,
+      isPriority: isPriorityUser(entry),
+      unmatchedReason: forcedPairsCount >= MATCHMAKING_FORCED_PAIR_CAP ? "forced_cap_reached" : "no_candidate_within_relaxed",
+    }));
+
+  return {
+    pairs,
+    pairDecisions,
+    unmatchedUserIds: [...unmatchedIds].sort((a, b) => a - b),
+    effectiveMaxDelta,
+    passStats,
+    unmatchedDetails,
+    priorityLowBattleThreshold: lowBattleThreshold,
+    forcedPairsCount,
+  };
 }
 
 function snapshotUserForBattle(user) {
@@ -1146,6 +1441,10 @@ function snapshotUserForBattle(user) {
     classId: user.classId,
     level: Number(user.level) || 1,
     rating: Number(user.rating) || 0,
+    battlesTotal: Number(user.battlesTotal) || 0,
+    lastBattleTick: Number(user.lastBattleTick) || 0,
+    winStreak: Number(user.winStreak) || 0,
+    loseStreak: Number(user.loseStreak) || 0,
     colorTier: user.colorTier || null,
     adjective: user.adjective || "",
     stats: {
@@ -1173,12 +1472,18 @@ function postBattleTelemetry(event) {
     startapp: state.templateKey || "club",
     ...event,
   };
-  fetch(BATTLE_TELEMETRY_ENDPOINT, {
+  const payload = JSON.stringify(telemetryEvent);
+  const shouldUseKeepalive =
+    telemetryEvent.type === "game_finished" && payload.length <= 60 * 1024;
+  const requestOptions = {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(telemetryEvent),
-    keepalive: true,
-  }).catch(() => {
+    body: payload,
+  };
+  if (shouldUseKeepalive) {
+    requestOptions.keepalive = true;
+  }
+  fetch(BATTLE_TELEMETRY_ENDPOINT, requestOptions).catch(() => {
     // Logging transport is best-effort and must not affect gameplay.
   });
 }
@@ -2297,53 +2602,17 @@ function pushBattleTickLog() {
   const queue = shuffled
     .map((user) => ({ user, mmScore: computeMatchmakingScore(user, matchmakingRngTrace) }))
     .sort((a, b) => a.mmScore - b.mmScore);
-  const matchmakingPool = buildMatchmakingPoolSnapshot(queue, runtimeConfig.matchmakingMaxDelta);
 
   const battleEvents = [];
   const leaderboardBefore = buildLeaderboardEntries(runtimeStore.users);
-  const pairDecisions = [];
-  const used = new Set();
-  for (let i = 0; i < queue.length - 1; i += 1) {
-    const left = queue[i];
-    const right = queue[i + 1];
-    if (used.has(left.user.id) || used.has(right.user.id)) {
-      pairDecisions.push({
-        leftUserId: left.user.id,
-        rightUserId: right.user.id,
-        leftMmScore: Number(left.mmScore.toFixed(4)),
-        rightMmScore: Number(right.mmScore.toFixed(4)),
-        delta: Number(Math.abs(left.mmScore - right.mmScore).toFixed(4)),
-        decision: "rejected",
-        reason: "already_paired",
-      });
-      continue;
-    }
-    const delta = Math.abs(left.mmScore - right.mmScore);
-    if (delta > runtimeConfig.matchmakingMaxDelta) {
-      pairDecisions.push({
-        leftUserId: left.user.id,
-        rightUserId: right.user.id,
-        leftMmScore: Number(left.mmScore.toFixed(4)),
-        rightMmScore: Number(right.mmScore.toFixed(4)),
-        delta: Number(delta.toFixed(4)),
-        decision: "rejected",
-        reason: "delta_exceeded",
-      });
-      continue;
-    }
-    used.add(left.user.id);
-    used.add(right.user.id);
-    pairDecisions.push({
-      leftUserId: left.user.id,
-      rightUserId: right.user.id,
-      leftMmScore: Number(left.mmScore.toFixed(4)),
-      rightMmScore: Number(right.mmScore.toFixed(4)),
-      delta: Number(delta.toFixed(4)),
-      decision: "accepted",
-    });
-    battleEvents.push(runBattleForPair(left, right));
+  const pairingResult = buildBattlePairs(queue, runtimeConfig.matchmakingMaxDelta, battleTelemetryTickId);
+  const pairDecisions = pairingResult.pairDecisions;
+  const unmatchedUserIds = pairingResult.unmatchedUserIds;
+  const effectiveMaxDelta = Number(pairingResult.effectiveMaxDelta || runtimeConfig.matchmakingMaxDelta);
+  const matchmakingPool = buildMatchmakingPoolSnapshot(queue, effectiveMaxDelta);
+  for (const pairing of pairingResult.pairs) {
+    battleEvents.push(runBattleForPair(pairing.left, pairing.right, pairing.meta));
   }
-  const unmatchedUserIds = queue.filter((entry) => !used.has(entry.user.id)).map((entry) => entry.user.id);
   if (!battleEvents.length) {
     postBattleTelemetry({
       type: "battle_tick",
@@ -2353,16 +2622,22 @@ function pushBattleTickLog() {
         systemLogIntervalMs: runtimeConfig.systemLogIntervalMs,
         battleTickIntervalMs: runtimeConfig.battleTickIntervalMs,
         matchmakingMaxDelta: runtimeConfig.matchmakingMaxDelta,
+        effectiveMaxDelta,
       },
       matchmaking: {
         queue: queue.map((entry) => ({
           userId: entry.user.id,
           name: entry.user.name,
           mmScore: Number(entry.mmScore.toFixed(4)),
+          battlesTotal: Number(entry.user.battlesTotal) || 0,
         })),
         pairs: [],
         decisions: pairDecisions,
         unmatchedUserIds,
+        unmatchedDetails: pairingResult.unmatchedDetails,
+        passStats: pairingResult.passStats,
+        priorityLowBattleThreshold: pairingResult.priorityLowBattleThreshold,
+        forcedPairsCount: pairingResult.forcedPairsCount,
         pool: matchmakingPool,
         skipped: "no_eligible_pairs",
       },
@@ -2378,6 +2653,10 @@ function pushBattleTickLog() {
   }
 
   for (const event of battleEvents) {
+    event.winner.battlesTotal = (Number(event.winner.battlesTotal) || 0) + 1;
+    event.winner.lastBattleTick = battleTelemetryTickId;
+    event.loser.battlesTotal = (Number(event.loser.battlesTotal) || 0) + 1;
+    event.loser.lastBattleTick = battleTelemetryTickId;
     const winnerMeta = buildCombatLogText("victory");
     const loserMeta = buildCombatLogText("defeat");
 
@@ -2387,11 +2666,13 @@ function pushBattleTickLog() {
       combatResult: "victory",
       text: winnerMeta.text,
     });
-    appendLogToUser(event.winner, {
-      time: nowTime(),
-      type: "levelup",
-      text: `уровень повышен: Lv ${event.winner.level}`,
-    });
+    if ((Number(event.winnerUpdates.levelGain) || 0) > 0) {
+      appendLogToUser(event.winner, {
+        time: nowTime(),
+        type: "levelup",
+        text: `уровень повышен: Lv ${event.winner.level}`,
+      });
+    }
     if (event.winnerUpdates.item) {
       appendLogToUser(event.winner, {
         time: nowTime(),
@@ -2456,15 +2737,21 @@ function pushBattleTickLog() {
       systemLogIntervalMs: runtimeConfig.systemLogIntervalMs,
       battleTickIntervalMs: runtimeConfig.battleTickIntervalMs,
       matchmakingMaxDelta: runtimeConfig.matchmakingMaxDelta,
+      effectiveMaxDelta,
     },
     matchmaking: {
       queue: queue.map((entry) => ({
         userId: entry.user.id,
         name: entry.user.name,
         mmScore: Number(entry.mmScore.toFixed(4)),
+        battlesTotal: Number(entry.user.battlesTotal) || 0,
       })),
       decisions: pairDecisions,
       unmatchedUserIds,
+      unmatchedDetails: pairingResult.unmatchedDetails,
+      passStats: pairingResult.passStats,
+      priorityLowBattleThreshold: pairingResult.priorityLowBattleThreshold,
+      forcedPairsCount: pairingResult.forcedPairsCount,
       pool: matchmakingPool,
       pairs: battleEvents.map((event) => ({
         leftUserId: event.pair.leftUserId,
@@ -2474,6 +2761,10 @@ function pushBattleTickLog() {
         leftWinProbability: event.pair.leftWinProbability,
         rightWinProbability: event.pair.rightWinProbability,
         powerDelta: Number(event.powerDelta.toFixed(4)),
+        matchKind: event.pair.matchKind,
+        deltaLimitUsed: event.pair.deltaLimitUsed,
+        leftWasPriority: event.pair.leftWasPriority,
+        rightWasPriority: event.pair.rightWasPriority,
       })),
     },
     rngTrace: {
