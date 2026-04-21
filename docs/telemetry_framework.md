@@ -245,6 +245,7 @@ npm run analyze:telemetry
 - суммарное число боёв;
 - fights/wins/winrate по каждому пользователю;
 - финальный лидерборд.
+- Важно для deep-dive скриптов: `userId` в telemetry числовой; сортировку ID делать как numeric (`a.id - b.id`), не строковым `localeCompare`.
 
 ## 13. Рекомендуемый воспроизводимый флоу
 

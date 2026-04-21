@@ -614,6 +614,8 @@ class User {
     colorTier = null,
     adjective = "",
     createdByAdmin = true,
+    battlesTotal = 0,
+    lastBattleTick = 0,
   }) {
     this.id = Number.isFinite(id) ? Math.max(0, Math.floor(id)) : 0;
     this.templateKey = profileTemplateByParam[templateKey] ? templateKey : "club";
@@ -628,6 +630,8 @@ class User {
     this.adjective = adjective || "";
     this.logs = [...(logs || [])].slice(-MAX_STORED_LOGS_PER_USER);
     this.createdByAdmin = createdByAdmin === true;
+    this.battlesTotal = Math.max(0, Number(battlesTotal) || 0);
+    this.lastBattleTick = Math.max(0, Number(lastBattleTick) || 0);
   }
 
   static fromTemplate(templateKey, userId, createdByAdmin = true) {
@@ -667,6 +671,8 @@ class User {
       colorTier: item?.colorTier,
       adjective: item?.adjective,
       createdByAdmin: item?.createdByAdmin === true,
+      battlesTotal: item?.battlesTotal,
+      lastBattleTick: item?.lastBattleTick,
     });
   }
 
@@ -687,6 +693,8 @@ class User {
       adjective: this.adjective,
       logs: (this.logs || []).slice(-MAX_STORED_LOGS_PER_USER),
       createdByAdmin: this.createdByAdmin === true,
+      battlesTotal: this.battlesTotal,
+      lastBattleTick: this.lastBattleTick,
     };
   }
 }
@@ -741,7 +749,8 @@ function computeMatchmakingScore(user, rngTrace = null) {
   const power = computeBattlePower(user.level, stats.hp, stats.attack);
   const jitterRoll = drawRandom(rngTrace, `mm.jitter.user_${user.id}`);
   const jitter = (jitterRoll - 0.5) * 0.2;
-  return power + jitter;
+  const participationBias = (Number(user.battlesTotal) || 0) * 0.04;
+  return power + jitter + participationBias;
 }
 
 function buildUserCombatSnapshot(user) {
@@ -1129,9 +1138,102 @@ function buildMatchmakingPoolSnapshot(queue, maxDelta) {
       userId: entry.user.id,
       name: entry.user.name,
       mmScore: Number(entry.mmScore.toFixed(4)),
+      battlesTotal: Number(entry.user.battlesTotal) || 0,
       candidates,
     };
   });
+}
+
+function buildBattlePairs(queue, maxDelta) {
+  const pairDecisions = [];
+  const pairs = [];
+  const unmatchedIds = new Set(queue.map((entry) => entry.user.id));
+  const queueById = new Map(queue.map((entry) => [entry.user.id, entry]));
+  const priorityQueue = [...queue].sort((a, b) => {
+    const battlesA = Number(a.user.battlesTotal) || 0;
+    const battlesB = Number(b.user.battlesTotal) || 0;
+    if (battlesA !== battlesB) {
+      return battlesA - battlesB;
+    }
+    const lastTickA = Number(a.user.lastBattleTick) || 0;
+    const lastTickB = Number(b.user.lastBattleTick) || 0;
+    if (lastTickA !== lastTickB) {
+      return lastTickA - lastTickB;
+    }
+    if (a.mmScore !== b.mmScore) {
+      return a.mmScore - b.mmScore;
+    }
+    return a.user.id - b.user.id;
+  });
+
+  for (const left of priorityQueue) {
+    if (!unmatchedIds.has(left.user.id)) {
+      continue;
+    }
+    let best = null;
+    let nearest = null;
+    for (const rightUserId of unmatchedIds) {
+      if (rightUserId === left.user.id) {
+        continue;
+      }
+      const right = queueById.get(rightUserId);
+      const delta = Math.abs(left.mmScore - right.mmScore);
+      if (!nearest || delta < nearest.delta) {
+        nearest = { entry: right, delta };
+      }
+      if (delta > maxDelta) {
+        continue;
+      }
+      if (!best || delta < best.delta) {
+        best = { entry: right, delta };
+        continue;
+      }
+      if (best && delta === best.delta) {
+        const bestBattles = Number(best.entry.user.battlesTotal) || 0;
+        const nextBattles = Number(right.user.battlesTotal) || 0;
+        if (nextBattles < bestBattles) {
+          best = { entry: right, delta };
+          continue;
+        }
+        if (nextBattles === bestBattles && right.user.id < best.entry.user.id) {
+          best = { entry: right, delta };
+        }
+      }
+    }
+
+    if (!best) {
+      if (nearest) {
+        pairDecisions.push({
+          leftUserId: left.user.id,
+          rightUserId: nearest.entry.user.id,
+          leftMmScore: Number(left.mmScore.toFixed(4)),
+          rightMmScore: Number(nearest.entry.mmScore.toFixed(4)),
+          delta: Number(nearest.delta.toFixed(4)),
+          decision: "rejected",
+          reason: "delta_exceeded",
+        });
+      }
+      continue;
+    }
+
+    unmatchedIds.delete(left.user.id);
+    unmatchedIds.delete(best.entry.user.id);
+    pairDecisions.push({
+      leftUserId: left.user.id,
+      rightUserId: best.entry.user.id,
+      leftMmScore: Number(left.mmScore.toFixed(4)),
+      rightMmScore: Number(best.entry.mmScore.toFixed(4)),
+      delta: Number(best.delta.toFixed(4)),
+      decision: "accepted",
+    });
+    pairs.push({ left, right: best.entry });
+  }
+
+  return {
+    pairs,
+    pairDecisions,
+    unmatchedUserIds: [...unmatchedIds].sort((a, b) => a - b),
+  };
 }
 
 function snapshotUserForBattle(user) {
@@ -1146,6 +1248,8 @@ function snapshotUserForBattle(user) {
     classId: user.classId,
     level: Number(user.level) || 1,
     rating: Number(user.rating) || 0,
+    battlesTotal: Number(user.battlesTotal) || 0,
+    lastBattleTick: Number(user.lastBattleTick) || 0,
     colorTier: user.colorTier || null,
     adjective: user.adjective || "",
     stats: {
@@ -2301,49 +2405,12 @@ function pushBattleTickLog() {
 
   const battleEvents = [];
   const leaderboardBefore = buildLeaderboardEntries(runtimeStore.users);
-  const pairDecisions = [];
-  const used = new Set();
-  for (let i = 0; i < queue.length - 1; i += 1) {
-    const left = queue[i];
-    const right = queue[i + 1];
-    if (used.has(left.user.id) || used.has(right.user.id)) {
-      pairDecisions.push({
-        leftUserId: left.user.id,
-        rightUserId: right.user.id,
-        leftMmScore: Number(left.mmScore.toFixed(4)),
-        rightMmScore: Number(right.mmScore.toFixed(4)),
-        delta: Number(Math.abs(left.mmScore - right.mmScore).toFixed(4)),
-        decision: "rejected",
-        reason: "already_paired",
-      });
-      continue;
-    }
-    const delta = Math.abs(left.mmScore - right.mmScore);
-    if (delta > runtimeConfig.matchmakingMaxDelta) {
-      pairDecisions.push({
-        leftUserId: left.user.id,
-        rightUserId: right.user.id,
-        leftMmScore: Number(left.mmScore.toFixed(4)),
-        rightMmScore: Number(right.mmScore.toFixed(4)),
-        delta: Number(delta.toFixed(4)),
-        decision: "rejected",
-        reason: "delta_exceeded",
-      });
-      continue;
-    }
-    used.add(left.user.id);
-    used.add(right.user.id);
-    pairDecisions.push({
-      leftUserId: left.user.id,
-      rightUserId: right.user.id,
-      leftMmScore: Number(left.mmScore.toFixed(4)),
-      rightMmScore: Number(right.mmScore.toFixed(4)),
-      delta: Number(delta.toFixed(4)),
-      decision: "accepted",
-    });
-    battleEvents.push(runBattleForPair(left, right));
+  const pairingResult = buildBattlePairs(queue, runtimeConfig.matchmakingMaxDelta);
+  const pairDecisions = pairingResult.pairDecisions;
+  const unmatchedUserIds = pairingResult.unmatchedUserIds;
+  for (const pairing of pairingResult.pairs) {
+    battleEvents.push(runBattleForPair(pairing.left, pairing.right));
   }
-  const unmatchedUserIds = queue.filter((entry) => !used.has(entry.user.id)).map((entry) => entry.user.id);
   if (!battleEvents.length) {
     postBattleTelemetry({
       type: "battle_tick",
@@ -2359,6 +2426,7 @@ function pushBattleTickLog() {
           userId: entry.user.id,
           name: entry.user.name,
           mmScore: Number(entry.mmScore.toFixed(4)),
+          battlesTotal: Number(entry.user.battlesTotal) || 0,
         })),
         pairs: [],
         decisions: pairDecisions,
@@ -2378,6 +2446,10 @@ function pushBattleTickLog() {
   }
 
   for (const event of battleEvents) {
+    event.winner.battlesTotal = (Number(event.winner.battlesTotal) || 0) + 1;
+    event.winner.lastBattleTick = battleTelemetryTickId;
+    event.loser.battlesTotal = (Number(event.loser.battlesTotal) || 0) + 1;
+    event.loser.lastBattleTick = battleTelemetryTickId;
     const winnerMeta = buildCombatLogText("victory");
     const loserMeta = buildCombatLogText("defeat");
 
@@ -2462,6 +2534,7 @@ function pushBattleTickLog() {
         userId: entry.user.id,
         name: entry.user.name,
         mmScore: Number(entry.mmScore.toFixed(4)),
+        battlesTotal: Number(entry.user.battlesTotal) || 0,
       })),
       decisions: pairDecisions,
       unmatchedUserIds,
