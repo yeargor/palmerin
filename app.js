@@ -142,8 +142,8 @@ const STORAGE_KEY = "miniapp.runtime.v1";
 const BATTLE_POWER_K = 1;
 const BATTLE_W_LVL = 0.6;
 const DEFAULT_RUNTIME_CONFIG = Object.freeze({
-  systemLogIntervalMs: 10000,
-  battleTickIntervalMs: 15000,
+  systemLogIntervalMs: 2500,
+  battleTickIntervalMs: 3500,
   matchmakingMaxDelta: 1.75,
 });
 const MIN_INTERVAL_MS = 1000;
@@ -304,6 +304,7 @@ let latestRenderedSpriteMeta = {
   height: SPRITE_MIN_GRID_HEIGHT,
 };
 let currentCombatStats = { hp: 1, attack: 1 };
+let battleTelemetryTickId = 0;
 
 function getStartParam() {
   const url = new URL(window.location.href);
@@ -313,6 +314,21 @@ function getStartParam() {
     url.searchParams.get("profile");
 
   return tg?.initDataUnsafe?.start_param || urlParam || "club";
+}
+
+function makeTelemetryId() {
+  const randomPart = Math.random().toString(36).slice(2, 10);
+  return `${Date.now().toString(36)}-${randomPart}`;
+}
+
+function getOrCreateTelemetrySessionId() {
+  const current = window.localStorage.getItem(TELEMETRY_SESSION_STORAGE_KEY);
+  if (current) {
+    return current;
+  }
+  const next = makeTelemetryId();
+  window.localStorage.setItem(TELEMETRY_SESSION_STORAGE_KEY, next);
+  return next;
 }
 
 function clampNumber(value, min, max) {
@@ -376,28 +392,19 @@ function getRequestedUserId() {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-const requestedProfileParam = getStartParam();
-const runtimeConfig = resolveRuntimeConfig();
-const requestedUserId = getRequestedUserId();
-const runtimeStore = loadRuntimeStore(requestedProfileParam);
-const selectedUser = pickActiveUser(runtimeStore, requestedUserId, requestedProfileParam);
-const selectedTemplateKey = profileTemplateByParam[requestedProfileParam] ? requestedProfileParam : "club";
-const selectedSession = selectedUser || createUserFromTemplate(selectedTemplateKey, 0, false);
-const spriteDebugMode = isSpriteDebugMode();
-const state = {
-  id: selectedSession.id,
-  userId: selectedUser ? selectedSession.id : null,
-  templateKey: selectedSession.templateKey || selectedTemplateKey,
-  classId: selectedSession.classId,
-  preset: sanitizePreset(selectedSession.preset, selectedSession.templateKey, selectedSession.classId),
-  name: selectedSession.name,
-  level: selectedSession.level,
-  rating: selectedSession.rating || 0,
-  rarity: selectedSession.rarity || "rare",
-  logs: [...(selectedSession.logs || [])].slice(-MAX_UI_LOGS),
-};
-const activeUserId = state.userId;
-const hasActiveRuntimeUser = Number.isFinite(activeUserId);
+let requestedProfileParam;
+let runtimeConfig;
+let requestedUserId;
+let runtimeStore;
+let selectedUser;
+let selectedTemplateKey;
+let selectedSession;
+let spriteDebugMode;
+let state;
+let activeUserId;
+let hasActiveRuntimeUser;
+let telemetrySessionId;
+let telemetryPageSessionId;
 const randomClassAdjectives = [
   "Перегруженный",
   "Фуззовый",
@@ -466,7 +473,13 @@ const RANDOM_COLOR_HEX_BY_TIER = {
   seraph: "#f866af",
   amber: "#f9970b",
 };
+const COLOR_TIER_SEQUENCE = ["uncommon", "rare", "seraph", "amber", "reggae", "palmerin"];
+const DEFAULT_RANDOM_TIER = "uncommon";
 const specialAdjectiveSet = new Set(["Палмерин", "Регги"]);
+const BATTLE_TELEMETRY_ENDPOINT = "/__telemetry/battle";
+const TELEMETRY_SCHEMA_VERSION = 1;
+const TELEMETRY_EVENT_VERSION = 2;
+const TELEMETRY_SESSION_STORAGE_KEY = "miniapp.telemetry.sessionId";
 
 function escapeHtml(text) {
   return String(text)
@@ -540,6 +553,53 @@ function sanitizePreset(rawPreset, templateKey = "club", classId = "warrior") {
   }
 }
 
+function pickRandomTierByPreset(preset) {
+  const adaptive = getPresetColorTierWeights(preset);
+  const weightedTiers = COLOR_TIER_SEQUENCE.map((id) => ({
+    id,
+    weight: adaptive.weights[id] || 0,
+  }));
+  return pickByWeight(weightedTiers)?.id || DEFAULT_RANDOM_TIER;
+}
+
+function getTierStep(tier) {
+  const idx = COLOR_TIER_SEQUENCE.indexOf(tier);
+  return idx >= 0 ? idx : 0;
+}
+
+function clampTierStep(step) {
+  return COLOR_TIER_SEQUENCE[clampNumber(step, 0, COLOR_TIER_SEQUENCE.length - 1)];
+}
+
+function pickRandomRegularAdjectiveWord() {
+  const regularAdjectives = randomClassAdjectives.filter((word) => !specialAdjectiveSet.has(word));
+  return regularAdjectives[Math.floor(Math.random() * regularAdjectives.length)] || "Дикий";
+}
+
+function buildAdjectiveFromTier(tier) {
+  if (tier === "palmerin") {
+    return "Палмерин";
+  }
+  if (tier === "reggae") {
+    return "Регги";
+  }
+  return pickRandomRegularAdjectiveWord();
+}
+
+function createRandomIdentityFromPreset(preset) {
+  const colorTier = pickRandomTierByPreset(preset);
+  return {
+    colorTier,
+    adjective: buildAdjectiveFromTier(colorTier),
+  };
+}
+
+function stepColorTier(currentTier, direction) {
+  const currentStep = getTierStep(currentTier);
+  const nextStep = currentStep + direction;
+  return clampTierStep(nextStep);
+}
+
 class User {
   constructor({
     id,
@@ -551,6 +611,8 @@ class User {
     rarity = "rare",
     logs = [],
     preset = null,
+    colorTier = null,
+    adjective = "",
     createdByAdmin = true,
   }) {
     this.id = Number.isFinite(id) ? Math.max(0, Math.floor(id)) : 0;
@@ -562,12 +624,18 @@ class User {
     this.rarity = rarity || "rare";
     this.preset = sanitizePreset(preset, this.templateKey, this.classId);
     this.classId = detectPresetDominantBaseClass(this.preset);
+    this.colorTier = colorTier || (this.templateKey === "random" ? DEFAULT_RANDOM_TIER : "rare");
+    this.adjective = adjective || "";
     this.logs = [...(logs || [])].slice(-MAX_STORED_LOGS_PER_USER);
     this.createdByAdmin = createdByAdmin === true;
   }
 
   static fromTemplate(templateKey, userId, createdByAdmin = true) {
     const template = profileTemplateByParam[templateKey] || profileTemplateByParam.club;
+    const preset = templateKey === "random"
+      ? buildRandomPreset()
+      : { ...(characterPresetByClassId[template.classId] || characterPresetByClassId.warrior) };
+    const randomIdentity = templateKey === "random" ? createRandomIdentityFromPreset(preset) : null;
     return new User({
       id: userId,
       templateKey,
@@ -577,9 +645,9 @@ class User {
       rating: Math.max(0, Number(template.rating) || 0),
       rarity: template.rarity || "rare",
       logs: buildInitialSystemLogs(template),
-      preset: templateKey === "random"
-        ? buildRandomPreset()
-        : { ...(characterPresetByClassId[template.classId] || characterPresetByClassId.warrior) },
+      preset,
+      colorTier: randomIdentity?.colorTier || null,
+      adjective: randomIdentity?.adjective || "",
       createdByAdmin,
     });
   }
@@ -596,6 +664,8 @@ class User {
       rarity: item?.rarity,
       logs: [...(item?.logs || [])],
       preset: item?.preset,
+      colorTier: item?.colorTier,
+      adjective: item?.adjective,
       createdByAdmin: item?.createdByAdmin === true,
     });
   }
@@ -613,6 +683,8 @@ class User {
       level: this.level,
       rarity: this.rarity,
       preset: this.preset,
+      colorTier: this.colorTier,
+      adjective: this.adjective,
       logs: (this.logs || []).slice(-MAX_STORED_LOGS_PER_USER),
       createdByAdmin: this.createdByAdmin === true,
     };
@@ -622,6 +694,34 @@ class User {
 function createUserFromTemplate(templateKey, userId, createdByAdmin = true) {
   return User.fromTemplate(templateKey, userId, createdByAdmin);
 }
+
+requestedProfileParam = getStartParam();
+runtimeConfig = resolveRuntimeConfig();
+requestedUserId = getRequestedUserId();
+runtimeStore = loadRuntimeStore(requestedProfileParam);
+selectedUser = pickActiveUser(runtimeStore, requestedUserId, requestedProfileParam);
+selectedTemplateKey = profileTemplateByParam[requestedProfileParam] ? requestedProfileParam : "club";
+selectedSession = selectedUser || createUserFromTemplate(selectedTemplateKey, 0, false);
+spriteDebugMode = isSpriteDebugMode();
+state = {
+  id: selectedSession.id,
+  userId: selectedUser ? selectedSession.id : null,
+  templateKey: selectedSession.templateKey || selectedTemplateKey,
+  classId: selectedSession.classId,
+  preset: sanitizePreset(selectedSession.preset, selectedSession.templateKey, selectedSession.classId),
+  colorTier: selectedSession.colorTier || (selectedSession.templateKey === "random" ? DEFAULT_RANDOM_TIER : "rare"),
+  adjective: selectedSession.adjective || "",
+  name: selectedSession.name,
+  level: selectedSession.level,
+  rating: selectedSession.rating || 0,
+  rarity: selectedSession.rarity || "rare",
+  logs: [...(selectedSession.logs || [])].slice(-MAX_UI_LOGS),
+};
+activeUserId = state.userId;
+hasActiveRuntimeUser = Number.isFinite(activeUserId);
+telemetrySessionId = getOrCreateTelemetrySessionId();
+telemetryPageSessionId = makeTelemetryId();
+battleTelemetryTickId = Number(runtimeStore.gameState.telemetryTickId) || 0;
 
 function buildDefaultUsers(initialTemplateKey = "club") {
   void initialTemplateKey;
@@ -635,11 +735,12 @@ function computeBattlePower(level, hp, attack) {
   return (safeAttack / (safeHp + BATTLE_POWER_K)) + (safeHp / (safeAttack + BATTLE_POWER_K)) + (BATTLE_W_LVL * safeLevel);
 }
 
-function computeMatchmakingScore(user) {
+function computeMatchmakingScore(user, rngTrace = null) {
   const preset = buildProfilePreset(user);
   const stats = getPresetCombatStats(preset);
   const power = computeBattlePower(user.level, stats.hp, stats.attack);
-  const jitter = (Math.random() - 0.5) * 0.2;
+  const jitterRoll = drawRandom(rngTrace, `mm.jitter.user_${user.id}`);
+  const jitter = (jitterRoll - 0.5) * 0.2;
   return power + jitter;
 }
 
@@ -656,7 +757,7 @@ function buildUserCombatSnapshot(user) {
   };
 }
 
-function pickWeightedCandidate(items, getWeight) {
+function pickWeightedCandidate(items, getWeight, rngTrace = null, rollLabel = "weighted_pick") {
   if (!items.length) {
     return null;
   }
@@ -666,9 +767,10 @@ function pickWeightedCandidate(items, getWeight) {
   }));
   const sum = weighted.reduce((acc, entry) => acc + entry.weight, 0);
   if (sum <= 0) {
-    return items[Math.floor(Math.random() * items.length)] || null;
+    const idx = Math.floor(drawRandom(rngTrace, `${rollLabel}.uniform`) * items.length);
+    return items[idx] || null;
   }
-  let roll = Math.random() * sum;
+  let roll = drawRandom(rngTrace, `${rollLabel}.weighted`) * sum;
   for (const entry of weighted) {
     roll -= entry.weight;
     if (roll <= 0) {
@@ -698,113 +800,231 @@ function getSlotDowngradePool(slot, currentId) {
   return pool.filter((candidateId) => getComponentScore(candidateId) < currentScore);
 }
 
-function tryApplyWinnerDrop(user, powerDelta) {
+function tryApplyWinnerDrop(user, powerDelta, rngTrace = null) {
   const preset = buildProfilePreset(user);
   const slotsWithUpgrades = COMPONENT_SLOTS
     .map((slot) => ({ slot, upgrades: getSlotUpgradePool(slot, preset[slot]) }))
     .filter((entry) => entry.upgrades.length > 0);
   if (!slotsWithUpgrades.length) {
-    return null;
+    return { item: null, meta: { reason: "no_upgrade_pool" } };
   }
 
   const dropChance = clampNumber(0.28 + (powerDelta * 0.15), 0.2, 0.8);
-  if (Math.random() > dropChance) {
-    return null;
+  const dropRoll = drawRandom(rngTrace, "winner.drop.roll");
+  if (dropRoll > dropChance) {
+    return {
+      item: null,
+      meta: { reason: "chance_failed", dropChance: Number(dropChance.toFixed(4)), dropRoll: Number(dropRoll.toFixed(6)) },
+    };
   }
 
-  const slotEntry = slotsWithUpgrades[Math.floor(Math.random() * slotsWithUpgrades.length)];
+  const slotIdx = Math.floor(drawRandom(rngTrace, "winner.drop.slot_roll") * slotsWithUpgrades.length);
+  const slotEntry = slotsWithUpgrades[slotIdx];
   const currentScore = getComponentScore(preset[slotEntry.slot]);
   const pickedUpgrade = pickWeightedCandidate(slotEntry.upgrades, (candidateId) => {
     const gain = Math.max(1, getComponentScore(candidateId) - currentScore);
     return 1 / (gain * gain);
-  });
+  }, rngTrace, "winner.drop.component_roll");
   if (!pickedUpgrade) {
-    return null;
+    return { item: null, meta: { reason: "no_component_selected" } };
   }
 
   const nextPreset = { ...preset, [slotEntry.slot]: pickedUpgrade };
   try {
     validatePresetOrThrow(nextPreset);
   } catch {
-    return null;
+    return { item: null, meta: { reason: "validation_failed" } };
   }
 
   user.preset = nextPreset;
   user.classId = detectPresetDominantBaseClass(nextPreset);
-  return { slot: slotEntry.slot, componentId: pickedUpgrade };
+  return {
+    item: { slot: slotEntry.slot, componentId: pickedUpgrade },
+    meta: {
+      reason: "applied",
+      dropChance: Number(dropChance.toFixed(4)),
+      dropRoll: Number(dropRoll.toFixed(6)),
+      slotPoolSize: slotsWithUpgrades.length,
+    },
+  };
 }
 
-function tryApplyLoserDowngrade(user, powerDelta) {
+function tryApplyLoserDowngrade(user, powerDelta, rngTrace = null) {
   const preset = buildProfilePreset(user);
   const slotsWithDowngrades = COMPONENT_SLOTS
     .map((slot) => ({ slot, downgrades: getSlotDowngradePool(slot, preset[slot]) }))
     .filter((entry) => entry.downgrades.length > 0);
   if (!slotsWithDowngrades.length) {
-    return null;
+    return { item: null, meta: { reason: "no_downgrade_pool" } };
   }
 
   const downgradeChance = clampNumber(0.16 + (powerDelta * 0.2), 0.1, 0.7);
-  if (Math.random() > downgradeChance) {
-    return null;
+  const downgradeRoll = drawRandom(rngTrace, "loser.downgrade.roll");
+  if (downgradeRoll > downgradeChance) {
+    return {
+      item: null,
+      meta: {
+        reason: "chance_failed",
+        downgradeChance: Number(downgradeChance.toFixed(4)),
+        downgradeRoll: Number(downgradeRoll.toFixed(6)),
+      },
+    };
   }
 
-  const slotEntry = slotsWithDowngrades[Math.floor(Math.random() * slotsWithDowngrades.length)];
+  const slotIdx = Math.floor(drawRandom(rngTrace, "loser.downgrade.slot_roll") * slotsWithDowngrades.length);
+  const slotEntry = slotsWithDowngrades[slotIdx];
   const currentScore = getComponentScore(preset[slotEntry.slot]);
   const pickedDowngrade = pickWeightedCandidate(slotEntry.downgrades, (candidateId) => {
     const drop = Math.max(1, currentScore - getComponentScore(candidateId));
     return 1 / (drop * drop * drop);
-  });
+  }, rngTrace, "loser.downgrade.component_roll");
   if (!pickedDowngrade) {
-    return null;
+    return { item: null, meta: { reason: "no_component_selected" } };
   }
 
   const nextPreset = { ...preset, [slotEntry.slot]: pickedDowngrade };
   try {
     validatePresetOrThrow(nextPreset);
   } catch {
-    return null;
+    return { item: null, meta: { reason: "validation_failed" } };
   }
 
   user.preset = nextPreset;
   user.classId = detectPresetDominantBaseClass(nextPreset);
-  return { slot: slotEntry.slot, componentId: pickedDowngrade };
+  return {
+    item: { slot: slotEntry.slot, componentId: pickedDowngrade },
+    meta: {
+      reason: "applied",
+      downgradeChance: Number(downgradeChance.toFixed(4)),
+      downgradeRoll: Number(downgradeRoll.toFixed(6)),
+      slotPoolSize: slotsWithDowngrades.length,
+    },
+  };
 }
 
-function updateUserAfterBattleVictory(winner, powerDelta) {
+function updateUserAfterBattleVictory(winner, powerDelta, rngTrace = null) {
   winner.level = Math.max(1, Number(winner.level) || 1) + 1;
-  const item = tryApplyWinnerDrop(winner, powerDelta);
-  return { item };
+  const dropResult = tryApplyWinnerDrop(winner, powerDelta, rngTrace);
+  const item = dropResult.item;
+  let colorChanged = false;
+  let colorMeta = { reason: "not_random_template" };
+  if (winner.templateKey === "random") {
+    const upChance = clampNumber(0.18 + (powerDelta * 0.12), 0.08, 0.55);
+    const upRoll = drawRandom(rngTrace, "winner.color.roll");
+    if (upRoll < upChance) {
+      const nextTier = stepColorTier(winner.colorTier || DEFAULT_RANDOM_TIER, 1);
+      if (nextTier !== winner.colorTier) {
+        winner.colorTier = nextTier;
+        winner.adjective = buildAdjectiveFromTier(nextTier);
+        colorChanged = true;
+        colorMeta = {
+          reason: "applied",
+          upChance: Number(upChance.toFixed(4)),
+          upRoll: Number(upRoll.toFixed(6)),
+          nextTier,
+        };
+      } else {
+        colorMeta = {
+          reason: "at_cap",
+          upChance: Number(upChance.toFixed(4)),
+          upRoll: Number(upRoll.toFixed(6)),
+        };
+      }
+    } else {
+      colorMeta = {
+        reason: "chance_failed",
+        upChance: Number(upChance.toFixed(4)),
+        upRoll: Number(upRoll.toFixed(6)),
+      };
+    }
+  }
+  return { item, colorChanged, dropMeta: dropResult.meta, colorMeta };
 }
 
-function updateUserAfterBattleDefeat(loser, powerDelta) {
-  const item = tryApplyLoserDowngrade(loser, powerDelta);
-  return { item };
+function updateUserAfterBattleDefeat(loser, powerDelta, rngTrace = null) {
+  const downgradeResult = tryApplyLoserDowngrade(loser, powerDelta, rngTrace);
+  const item = downgradeResult.item;
+  let colorChanged = false;
+  let colorMeta = { reason: "not_random_template" };
+  if (loser.templateKey === "random") {
+    const downChance = clampNumber(0.14 + (powerDelta * 0.1), 0.06, 0.45);
+    const downRoll = drawRandom(rngTrace, "loser.color.roll");
+    if (downRoll < downChance) {
+      const nextTier = stepColorTier(loser.colorTier || DEFAULT_RANDOM_TIER, -1);
+      if (nextTier !== loser.colorTier) {
+        loser.colorTier = nextTier;
+        loser.adjective = buildAdjectiveFromTier(nextTier);
+        colorChanged = true;
+        colorMeta = {
+          reason: "applied",
+          downChance: Number(downChance.toFixed(4)),
+          downRoll: Number(downRoll.toFixed(6)),
+          nextTier,
+        };
+      } else {
+        colorMeta = {
+          reason: "at_floor",
+          downChance: Number(downChance.toFixed(4)),
+          downRoll: Number(downRoll.toFixed(6)),
+        };
+      }
+    } else {
+      colorMeta = {
+        reason: "chance_failed",
+        downChance: Number(downChance.toFixed(4)),
+        downRoll: Number(downRoll.toFixed(6)),
+      };
+    }
+  }
+  return { item, colorChanged, downgradeMeta: downgradeResult.meta, colorMeta };
 }
 
-function runBattleForPair(firstUser, secondUser) {
+function runBattleForPair(firstEntry, secondEntry) {
+  const rngTrace = [];
+  const firstUser = firstEntry.user;
+  const secondUser = secondEntry.user;
   const first = buildUserCombatSnapshot(firstUser);
   const second = buildUserCombatSnapshot(secondUser);
+  const firstBefore = snapshotUserForBattle(firstUser);
+  const secondBefore = snapshotUserForBattle(secondUser);
   const pFirst = 1 / (1 + Math.exp(second.power - first.power));
-  const firstWins = Math.random() < pFirst;
+  const pSecond = 1 - pFirst;
+  const outcomeRoll = drawRandom(rngTrace, "battle.outcome.roll");
+  const firstWins = outcomeRoll < pFirst;
   const winner = firstWins ? first : second;
   const loser = firstWins ? second : first;
   const powerDelta = Math.abs(first.power - second.power);
+  const winnerBefore = firstWins ? firstBefore : secondBefore;
+  const loserBefore = firstWins ? secondBefore : firstBefore;
 
-  const winnerUpdates = updateUserAfterBattleVictory(winner.user, powerDelta);
-  const loserUpdates = updateUserAfterBattleDefeat(loser.user, powerDelta);
+  const winnerUpdates = updateUserAfterBattleVictory(winner.user, powerDelta, rngTrace);
+  const loserUpdates = updateUserAfterBattleDefeat(loser.user, powerDelta, rngTrace);
   return {
+    pair: {
+      leftUserId: firstUser.id,
+      rightUserId: secondUser.id,
+      leftMmScore: Number(firstEntry.mmScore.toFixed(4)),
+      rightMmScore: Number(secondEntry.mmScore.toFixed(4)),
+      leftWinProbability: Number(pFirst.toFixed(4)),
+      rightWinProbability: Number(pSecond.toFixed(4)),
+    },
     winner: winner.user,
     loser: loser.user,
     powerDelta,
     winnerUpdates,
     loserUpdates,
+    winnerBefore,
+    loserBefore,
+    winnerAfter: snapshotUserForBattle(winner.user),
+    loserAfter: snapshotUserForBattle(loser.user),
+    rngTrace,
   };
 }
 
-function shuffleUsers(users) {
+function shuffleUsers(users, rngTrace = null) {
   const next = [...users];
   for (let i = next.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(drawRandom(rngTrace, `mm.shuffle.i${i}`) * (i + 1));
     const tmp = next[i];
     next[i] = next[j];
     next[j] = tmp;
@@ -819,6 +1039,148 @@ function appendLogToUser(user, logItem) {
   } else {
     user.logs = nextLogs.slice(-MAX_STORED_LOGS_PER_USER);
   }
+}
+
+function buildComponentDetails(preset) {
+  return COMPONENT_SLOTS.map((slot) => {
+    const id = preset?.[slot] || null;
+    const component = id ? componentById[id] : null;
+    return {
+      slot,
+      id,
+      baseClass: component?.baseClass || "shared",
+      stats: {
+        hp: Number(component?.stats?.hp) || 0,
+        attack: Number(component?.stats?.attack) || 0,
+      },
+    };
+  });
+}
+
+function drawRandom(rngTrace, label) {
+  const value = Math.random();
+  if (Array.isArray(rngTrace)) {
+    rngTrace.push({
+      label,
+      value: Number(value.toFixed(6)),
+    });
+  }
+  return value;
+}
+
+function computeStateDiff(before, after) {
+  if (!before || !after) {
+    return {};
+  }
+  const diff = {
+    changed: false,
+    fields: {},
+    componentChanges: [],
+  };
+
+  const fieldPairs = [
+    ["level", before.level, after.level],
+    ["rating", before.rating, after.rating],
+    ["classId", before.classId, after.classId],
+    ["colorTier", before.colorTier, after.colorTier],
+    ["adjective", before.adjective, after.adjective],
+    ["stats.hp", before.stats?.hp, after.stats?.hp],
+    ["stats.attack", before.stats?.attack, after.stats?.attack],
+    ["stats.power", before.stats?.power, after.stats?.power],
+  ];
+
+  for (const [key, b, a] of fieldPairs) {
+    if (b !== a) {
+      diff.changed = true;
+      diff.fields[key] = { before: b, after: a };
+    }
+  }
+
+  const beforeBySlot = new Map((before.components || []).map((item) => [item.slot, item.id]));
+  const afterBySlot = new Map((after.components || []).map((item) => [item.slot, item.id]));
+  for (const slot of COMPONENT_SLOTS) {
+    const prev = beforeBySlot.get(slot) || null;
+    const next = afterBySlot.get(slot) || null;
+    if (prev !== next) {
+      diff.changed = true;
+      diff.componentChanges.push({ slot, before: prev, after: next });
+    }
+  }
+
+  return diff;
+}
+
+function buildMatchmakingPoolSnapshot(queue, maxDelta) {
+  return queue.map((entry) => {
+    const candidates = queue
+      .filter((other) => other.user.id !== entry.user.id)
+      .map((other) => {
+        const delta = Math.abs(entry.mmScore - other.mmScore);
+        return {
+          userId: other.user.id,
+          name: other.user.name,
+          mmScore: Number(other.mmScore.toFixed(4)),
+          delta: Number(delta.toFixed(4)),
+          withinDelta: delta <= maxDelta,
+        };
+      })
+      .sort((a, b) => a.delta - b.delta || a.userId - b.userId);
+    return {
+      userId: entry.user.id,
+      name: entry.user.name,
+      mmScore: Number(entry.mmScore.toFixed(4)),
+      candidates,
+    };
+  });
+}
+
+function snapshotUserForBattle(user) {
+  const preset = buildProfilePreset(user);
+  const stats = getPresetCombatStats(preset);
+  const hp = Math.max(1, Number(stats.hp) || 1);
+  const attack = Math.max(1, Number(stats.attack) || 1);
+  return {
+    userId: user.id,
+    name: user.name,
+    templateKey: user.templateKey,
+    classId: user.classId,
+    level: Number(user.level) || 1,
+    rating: Number(user.rating) || 0,
+    colorTier: user.colorTier || null,
+    adjective: user.adjective || "",
+    stats: {
+      hp,
+      attack,
+      power: computeBattlePower(user.level, hp, attack),
+    },
+    preset,
+    components: buildComponentDetails(preset),
+  };
+}
+
+function postBattleTelemetry(event) {
+  const runId = Math.max(0, Number(runtimeStore.gameState.telemetryRunId) || 0);
+  const tickId = Number.isFinite(event?.tickId)
+    ? Number(event.tickId)
+    : (Math.max(0, Number(runtimeStore.gameState.telemetryTickId) || 0));
+  const telemetryEvent = {
+    schemaVersion: TELEMETRY_SCHEMA_VERSION,
+    eventVersion: TELEMETRY_EVENT_VERSION,
+    sessionId: telemetrySessionId,
+    pageSessionId: telemetryPageSessionId,
+    runId,
+    tickId,
+    startapp: state.templateKey || "club",
+    ...event,
+  };
+  fetch(BATTLE_TELEMETRY_ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(telemetryEvent),
+    keepalive: true,
+  }).catch(() => {
+    // Logging transport is best-effort and must not affect gameplay.
+  });
 }
 
 function buildProfilePreset(user) {
@@ -917,6 +1279,8 @@ function loadRuntimeStore(initialTemplateKey = "club") {
     battlesStarted: false,
     winnerUserId: null,
     frozenLeaderboard: null,
+    telemetryRunId: 0,
+    telemetryTickId: 0,
   };
   let users = [];
   let nextUserId = 1;
@@ -940,6 +1304,8 @@ function loadRuntimeStore(initialTemplateKey = "club") {
       if (Array.isArray(savedGame.frozenLeaderboard)) {
         gameState.frozenLeaderboard = savedGame.frozenLeaderboard;
       }
+      gameState.telemetryRunId = Math.max(0, Number(savedGame.telemetryRunId) || 0);
+      gameState.telemetryTickId = Math.max(0, Number(savedGame.telemetryTickId) || 0);
       if (!gameState.winnerUserId && Number.isFinite(savedGame.winnerKey)) {
         gameState.winnerUserId = Number(savedGame.winnerKey);
       }
@@ -983,6 +1349,8 @@ function persistRuntimeStore(runtimeStore) {
       battlesStarted: Boolean(runtimeStore.gameState.battlesStarted),
       winnerUserId: runtimeStore.gameState.winnerUserId || null,
       frozenLeaderboard: runtimeStore.gameState.frozenLeaderboard || null,
+      telemetryRunId: Math.max(0, Number(runtimeStore.gameState.telemetryRunId) || 0),
+      telemetryTickId: Math.max(0, Number(runtimeStore.gameState.telemetryTickId) || 0),
     },
   };
 
@@ -1009,6 +1377,8 @@ function clearAllUsers(runtimeStore) {
   runtimeStore.gameState.battlesStarted = false;
   runtimeStore.gameState.winnerUserId = null;
   runtimeStore.gameState.frozenLeaderboard = null;
+  runtimeStore.gameState.telemetryTickId = 0;
+  battleTelemetryTickId = 0;
   persistRuntimeStore(runtimeStore);
 }
 
@@ -1027,49 +1397,31 @@ function buildCombatLogText(forcedResult = null) {
   };
 }
 
-function pickRandomRegularAdjective() {
-  const regularAdjectives = randomClassAdjectives.filter((word) => !specialAdjectiveSet.has(word));
-  return regularAdjectives[Math.floor(Math.random() * regularAdjectives.length)] || "Дикий";
-}
-
-function pickRandomAdjectiveMeta(preset) {
-  const adaptive = getPresetColorTierWeights(preset);
-  const weightedTiers = [
-    { id: "uncommon", weight: adaptive.weights.uncommon },
-    { id: "rare", weight: adaptive.weights.rare },
-    { id: "seraph", weight: adaptive.weights.seraph },
-    { id: "amber", weight: adaptive.weights.amber },
-    { id: "reggae", weight: adaptive.weights.reggae },
-    { id: "palmerin", weight: adaptive.weights.palmerin },
-  ];
-  const selectedTier = pickByWeight(weightedTiers)?.id || "uncommon";
-
-  if (selectedTier === "palmerin") {
+function buildAdjectiveMeta(text, colorTier) {
+  if (colorTier === "palmerin" || text === "Палмерин") {
     return {
       text: "Палмерин",
       color: "#fe0f0e",
       isReggae: false,
       placeAfterClass: false,
+      colorTier: "palmerin",
     };
   }
-
-  if (selectedTier === "reggae") {
+  if (colorTier === "reggae" || text === "Регги") {
     return {
       text: "Регги",
       color: null,
       isReggae: true,
       placeAfterClass: false,
+      colorTier: "reggae",
     };
   }
-
-  const adjective = pickRandomRegularAdjective();
-  const color = RANDOM_COLOR_HEX_BY_TIER[selectedTier] || "#2f78ff";
-
   return {
-    text: adjective,
-    color,
+    text: text || pickRandomRegularAdjectiveWord(),
+    color: RANDOM_COLOR_HEX_BY_TIER[colorTier] || "#2f78ff",
     isReggae: false,
     placeAfterClass: false,
+    colorTier: colorTier || DEFAULT_RANDOM_TIER,
   };
 }
 
@@ -1171,8 +1523,12 @@ function renderProfileSelectorPage() {
     <section class="profile-selector-screen" aria-label="Profile Selector">
       <pre class="profile-selector-title">$ profiles/</pre>
       <div class="profile-selector-list" id="profileSelectorList"></div>
+      <pre class="profile-selector-separator">--------------------------------</pre>
       <pre class="profile-selector-title">$ users/</pre>
       <div class="profile-selector-list" id="userSelectorList"></div>
+      <div class="profile-selector-actions">
+        <button class="profile-selector-btn" id="profileSelectorNewUserBtn" type="button">[new user]</button>
+      </div>
     </section>
   `;
 
@@ -1199,23 +1555,32 @@ function renderProfileSelectorPage() {
   if (!users.length) {
     const emptyRow = document.createElement("pre");
     emptyRow.className = "profile-selector-item";
-    emptyRow.textContent = "----------  no users (create in admin)";
+    emptyRow.textContent = "----------  no users (use [new user])";
     userListEl.appendChild(emptyRow);
-    return;
-  }
-  for (const user of users) {
-    const row = document.createElement("button");
-    row.type = "button";
-    row.className = "profile-selector-item";
-    if (user.id === activeUserId) {
-      row.classList.add("profile-selector-item-active");
+  } else {
+    for (const user of users) {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "profile-selector-item";
+      if (user.id === activeUserId) {
+        row.classList.add("profile-selector-item-active");
+      }
+      const idLabel = `u${String(user.id).padStart(3, "0")}`;
+      row.textContent = `----------  ${user.classId.padEnd(7, " ")}  ${idLabel}  ${user.name}`;
+      row.setAttribute("aria-label", `Open user ${user.id}`);
+      row.addEventListener("click", () => openUserSession(user.id));
+      userListEl.appendChild(row);
     }
-    const idLabel = `u${String(user.id).padStart(3, "0")}`;
-    row.textContent = `----------  ${user.classId.padEnd(7, " ")}  ${idLabel}  ${user.name}`;
-    row.setAttribute("aria-label", `Open user ${user.id}`);
-    row.addEventListener("click", () => openUserSession(user.id));
-    userListEl.appendChild(row);
   }
+
+  const newUserBtn = document.getElementById("profileSelectorNewUserBtn");
+  newUserBtn?.addEventListener("click", () => {
+    if (runtimeStore.gameState.finished) {
+      return;
+    }
+    const created = createRandomUser(runtimeStore);
+    openUserSession(created.id);
+  });
 }
 
 function buildLeaderboardForView() {
@@ -1262,6 +1627,13 @@ function finishGameAndFreezeLeaderboard() {
 
   const winnerName = winnerEntry?.name || "неизвестный пользователь";
   appendSystemLogToAllProfiles(`битва завершена, победитель: ${winnerName}`);
+  postBattleTelemetry({
+    type: "game_finished",
+    ts: new Date().toISOString(),
+    winnerUserId: runtimeStore.gameState.winnerUserId,
+    winnerName,
+    leaderboard: leaderboard,
+  });
   persistRuntimeStore(runtimeStore);
 }
 
@@ -1323,6 +1695,9 @@ function renderAdminPage() {
       return;
     }
     runtimeStore.gameState.battlesStarted = true;
+    runtimeStore.gameState.telemetryRunId = Math.max(0, Number(runtimeStore.gameState.telemetryRunId) || 0) + 1;
+    runtimeStore.gameState.telemetryTickId = 0;
+    battleTelemetryTickId = 0;
     persistRuntimeStore(runtimeStore);
     renderAdminPage();
   });
@@ -1653,7 +2028,21 @@ function renderHeader() {
   let randomAdjectiveMeta = null;
 
   if (isRandomSession) {
-    randomAdjectiveMeta = pickRandomAdjectiveMeta(preset);
+    const hasStoredIdentity = Boolean(state.adjective) && Boolean(state.colorTier);
+    if (!hasStoredIdentity) {
+      const generated = createRandomIdentityFromPreset(preset);
+      state.adjective = generated.adjective;
+      state.colorTier = generated.colorTier;
+      if (hasActiveRuntimeUser) {
+        const activeUser = findUserById(runtimeStore.users, activeUserId);
+        if (activeUser) {
+          activeUser.adjective = state.adjective;
+          activeUser.colorTier = state.colorTier;
+          persistRuntimeStore(runtimeStore);
+        }
+      }
+    }
+    randomAdjectiveMeta = buildAdjectiveMeta(state.adjective, state.colorTier);
     const adjectiveClass = randomAdjectiveMeta.isReggae
       ? "character-name-adjective character-name-adjective-reggae"
       : "character-name-adjective";
@@ -1900,28 +2289,91 @@ function pushBattleTickLog() {
   if (runtimeStore.users.length < 2) {
     return;
   }
+  battleTelemetryTickId += 1;
+  runtimeStore.gameState.telemetryTickId = battleTelemetryTickId;
 
-  const shuffled = shuffleUsers(runtimeStore.users);
+  const matchmakingRngTrace = [];
+  const shuffled = shuffleUsers(runtimeStore.users, matchmakingRngTrace);
   const queue = shuffled
-    .map((user) => ({ user, mmScore: computeMatchmakingScore(user) }))
+    .map((user) => ({ user, mmScore: computeMatchmakingScore(user, matchmakingRngTrace) }))
     .sort((a, b) => a.mmScore - b.mmScore);
+  const matchmakingPool = buildMatchmakingPoolSnapshot(queue, runtimeConfig.matchmakingMaxDelta);
 
   const battleEvents = [];
+  const leaderboardBefore = buildLeaderboardEntries(runtimeStore.users);
+  const pairDecisions = [];
   const used = new Set();
   for (let i = 0; i < queue.length - 1; i += 1) {
     const left = queue[i];
     const right = queue[i + 1];
     if (used.has(left.user.id) || used.has(right.user.id)) {
+      pairDecisions.push({
+        leftUserId: left.user.id,
+        rightUserId: right.user.id,
+        leftMmScore: Number(left.mmScore.toFixed(4)),
+        rightMmScore: Number(right.mmScore.toFixed(4)),
+        delta: Number(Math.abs(left.mmScore - right.mmScore).toFixed(4)),
+        decision: "rejected",
+        reason: "already_paired",
+      });
       continue;
     }
-    if (Math.abs(left.mmScore - right.mmScore) > runtimeConfig.matchmakingMaxDelta) {
+    const delta = Math.abs(left.mmScore - right.mmScore);
+    if (delta > runtimeConfig.matchmakingMaxDelta) {
+      pairDecisions.push({
+        leftUserId: left.user.id,
+        rightUserId: right.user.id,
+        leftMmScore: Number(left.mmScore.toFixed(4)),
+        rightMmScore: Number(right.mmScore.toFixed(4)),
+        delta: Number(delta.toFixed(4)),
+        decision: "rejected",
+        reason: "delta_exceeded",
+      });
       continue;
     }
     used.add(left.user.id);
     used.add(right.user.id);
-    battleEvents.push(runBattleForPair(left.user, right.user));
+    pairDecisions.push({
+      leftUserId: left.user.id,
+      rightUserId: right.user.id,
+      leftMmScore: Number(left.mmScore.toFixed(4)),
+      rightMmScore: Number(right.mmScore.toFixed(4)),
+      delta: Number(delta.toFixed(4)),
+      decision: "accepted",
+    });
+    battleEvents.push(runBattleForPair(left, right));
   }
+  const unmatchedUserIds = queue.filter((entry) => !used.has(entry.user.id)).map((entry) => entry.user.id);
   if (!battleEvents.length) {
+    postBattleTelemetry({
+      type: "battle_tick",
+      tickId: battleTelemetryTickId,
+      ts: new Date().toISOString(),
+      config: {
+        systemLogIntervalMs: runtimeConfig.systemLogIntervalMs,
+        battleTickIntervalMs: runtimeConfig.battleTickIntervalMs,
+        matchmakingMaxDelta: runtimeConfig.matchmakingMaxDelta,
+      },
+      matchmaking: {
+        queue: queue.map((entry) => ({
+          userId: entry.user.id,
+          name: entry.user.name,
+          mmScore: Number(entry.mmScore.toFixed(4)),
+        })),
+        pairs: [],
+        decisions: pairDecisions,
+        unmatchedUserIds,
+        pool: matchmakingPool,
+        skipped: "no_eligible_pairs",
+      },
+      rngTrace: {
+        matchmaking: matchmakingRngTrace,
+      },
+      battles: [],
+      leaderboardBefore,
+      leaderboardAfter: buildLeaderboardEntries(runtimeStore.users),
+    });
+    persistRuntimeStore(runtimeStore);
     return;
   }
 
@@ -1947,6 +2399,13 @@ function pushBattleTickLog() {
         text: `дроп: улучшен слот ${event.winnerUpdates.item.slot}`,
       });
     }
+    if (event.winnerUpdates.colorChanged) {
+      appendLogToUser(event.winner, {
+        time: nowTime(),
+        type: "levelup",
+        text: "аура усилена",
+      });
+    }
 
     appendLogToUser(event.loser, {
       time: nowTime(),
@@ -1961,6 +2420,13 @@ function pushBattleTickLog() {
         text: `потеря: ослаблен слот ${event.loserUpdates.item.slot}`,
       });
     }
+    if (event.loserUpdates.colorChanged) {
+      appendLogToUser(event.loser, {
+        time: nowTime(),
+        type: "system",
+        text: "аура ослабла",
+      });
+    }
   }
 
   const activeUser = findUserById(runtimeStore.users, activeUserId);
@@ -1969,6 +2435,8 @@ function pushBattleTickLog() {
     state.level = activeUser.level;
     state.classId = activeUser.classId;
     state.preset = sanitizePreset(activeUser.preset, activeUser.templateKey, activeUser.classId);
+    state.colorTier = activeUser.colorTier || state.colorTier;
+    state.adjective = activeUser.adjective || state.adjective;
   }
 
   if (!runtimeStore.gameState.finished) {
@@ -1978,6 +2446,61 @@ function pushBattleTickLog() {
       state.rating = activeUser.rating;
     }
   }
+
+  const leaderboardAfter = buildLeaderboardEntries(runtimeStore.users);
+  postBattleTelemetry({
+    type: "battle_tick",
+    tickId: battleTelemetryTickId,
+    ts: new Date().toISOString(),
+    config: {
+      systemLogIntervalMs: runtimeConfig.systemLogIntervalMs,
+      battleTickIntervalMs: runtimeConfig.battleTickIntervalMs,
+      matchmakingMaxDelta: runtimeConfig.matchmakingMaxDelta,
+    },
+    matchmaking: {
+      queue: queue.map((entry) => ({
+        userId: entry.user.id,
+        name: entry.user.name,
+        mmScore: Number(entry.mmScore.toFixed(4)),
+      })),
+      decisions: pairDecisions,
+      unmatchedUserIds,
+      pool: matchmakingPool,
+      pairs: battleEvents.map((event) => ({
+        leftUserId: event.pair.leftUserId,
+        rightUserId: event.pair.rightUserId,
+        winnerUserId: event.winner.id,
+        loserUserId: event.loser.id,
+        leftWinProbability: event.pair.leftWinProbability,
+        rightWinProbability: event.pair.rightWinProbability,
+        powerDelta: Number(event.powerDelta.toFixed(4)),
+      })),
+    },
+    rngTrace: {
+      matchmaking: matchmakingRngTrace,
+      battles: battleEvents.map((event) => ({
+        pair: [event.pair.leftUserId, event.pair.rightUserId],
+        trace: event.rngTrace,
+      })),
+    },
+    battles: battleEvents.map((event) => ({
+      pair: event.pair,
+      winnerUserId: event.winner.id,
+      loserUserId: event.loser.id,
+      powerDelta: Number(event.powerDelta.toFixed(4)),
+      winnerUpdates: event.winnerUpdates,
+      loserUpdates: event.loserUpdates,
+      winnerBefore: event.winnerBefore,
+      loserBefore: event.loserBefore,
+      winnerAfter: event.winnerAfter,
+      loserAfter: event.loserAfter,
+      winnerDiff: computeStateDiff(event.winnerBefore, event.winnerAfter),
+      loserDiff: computeStateDiff(event.loserBefore, event.loserAfter),
+    })),
+    leaderboardBefore,
+    leaderboardAfter,
+  });
+
   persistRuntimeStore(runtimeStore);
 
   renderHeader();

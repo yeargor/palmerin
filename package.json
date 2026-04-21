@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "serve:logs": "node ./scripts/serve-with-logs.mjs",
     "preview:mobile": "bash ./scripts/preview-mobile.sh",
     "capture:mobile": "node ./scripts/capture-mobile.mjs",
     "test": "node --test tests/*.test.mjs"
