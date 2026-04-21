@@ -57,7 +57,26 @@ body {
   cursor: pointer;
 }
 
+.admin-ascii-btn {
+  position: absolute;
+  left: 56px;
+  bottom: 10px;
+  z-index: 10;
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
 .profile-selector-mode .close-ascii-btn {
+  display: none;
+}
+
+.profile-selector-mode .admin-ascii-btn {
   display: none;
 }
 
@@ -82,6 +101,13 @@ body {
   gap: 4px;
 }
 
+.profile-selector-separator {
+  margin: 10px 0;
+  color: #2a2a2a;
+  font-size: 14px;
+  line-height: 1;
+}
+
 .profile-selector-item {
   border: 0;
   background: transparent;
@@ -97,6 +123,98 @@ body {
 .profile-selector-item-active {
   color: #ffd400;
   animation: profile-active-blink 0.9s steps(1, end) infinite;
+}
+
+.profile-selector-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.profile-selector-btn {
+  border: 1px solid #2a2a2a;
+  background: transparent;
+  color: #ffffff;
+  text-align: left;
+  padding: 6px 8px;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 14px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+
+.admin-screen {
+  height: 100%;
+  min-height: 100svh;
+  background: #000000;
+  color: #ffffff;
+  padding: 12px;
+  overflow: auto;
+}
+
+.admin-title {
+  margin: 0 0 8px;
+  font-size: 16px;
+  line-height: 1.2;
+}
+
+.admin-summary {
+  margin: 0 0 10px;
+  color: #b7b7b7;
+  font-size: 13px;
+}
+
+.admin-list {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-row {
+  margin: 0;
+  border: 0;
+  background: transparent;
+  font-size: 15px;
+  line-height: 1.3;
+  white-space: pre-wrap;
+  color: #ffffff;
+  text-align: left;
+  font-family: "Courier New", Courier, monospace;
+  padding: 0;
+  cursor: pointer;
+}
+
+.admin-row-winner {
+  color: #ffd400;
+}
+
+.admin-actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.admin-btn {
+  border: 1px solid #2a2a2a;
+  background: transparent;
+  color: #ffffff;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 14px;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.admin-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.admin-note {
+  margin: 10px 0 0;
+  color: #b7b7b7;
+  font-size: 12px;
 }
 
 @keyframes profile-active-blink {
