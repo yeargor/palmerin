@@ -646,10 +646,10 @@ class User {
     this.loseStreak = Math.max(0, Number(loseStreak) || 0);
   }
 
-  static fromTemplate(templateKey, userId, createdByAdmin = true) {
+  static fromTemplate(templateKey, userId, createdByAdmin = true, spawnSelectionTelemetry = null) {
     const template = profileTemplateByParam[templateKey] || profileTemplateByParam.club;
     const preset = templateKey === "random"
-      ? buildRandomPreset()
+      ? buildRandomPreset(60, spawnSelectionTelemetry)
       : { ...(characterPresetByClassId[template.classId] || characterPresetByClassId.warrior) };
     const randomIdentity = templateKey === "random" ? createRandomIdentityFromPreset(preset) : null;
     return new User({
@@ -715,8 +715,8 @@ class User {
   }
 }
 
-function createUserFromTemplate(templateKey, userId, createdByAdmin = true) {
-  return User.fromTemplate(templateKey, userId, createdByAdmin);
+function createUserFromTemplate(templateKey, userId, createdByAdmin = true, spawnSelectionTelemetry = null) {
+  return User.fromTemplate(templateKey, userId, createdByAdmin, spawnSelectionTelemetry);
 }
 
 requestedProfileParam = getStartParam();
@@ -783,7 +783,7 @@ function buildUserCombatSnapshot(user) {
 
 function pickWeightedCandidate(items, getWeight, rngTrace = null, rollLabel = "weighted_pick") {
   if (!items.length) {
-    return null;
+    return { item: null, meta: { poolSize: 0, totalWeight: 0, roll: null, mode: "empty", selectedWeight: 0 } };
   }
   const weighted = items.map((item) => ({
     item,
@@ -791,17 +791,48 @@ function pickWeightedCandidate(items, getWeight, rngTrace = null, rollLabel = "w
   }));
   const sum = weighted.reduce((acc, entry) => acc + entry.weight, 0);
   if (sum <= 0) {
-    const idx = Math.floor(drawRandom(rngTrace, `${rollLabel}.uniform`) * items.length);
-    return items[idx] || null;
+    const uniformRoll = drawRandom(rngTrace, `${rollLabel}.uniform`);
+    const idx = Math.floor(uniformRoll * items.length);
+    const selected = items[idx] || null;
+    return {
+      item: selected,
+      meta: {
+        poolSize: items.length,
+        totalWeight: 0,
+        roll: Number(uniformRoll.toFixed(6)),
+        mode: "uniform_fallback",
+        selectedWeight: Number((weighted[idx]?.weight || 0).toFixed(6)),
+      },
+    };
   }
-  let roll = drawRandom(rngTrace, `${rollLabel}.weighted`) * sum;
+  const weightedRoll = drawRandom(rngTrace, `${rollLabel}.weighted`) * sum;
+  let roll = weightedRoll;
   for (const entry of weighted) {
     roll -= entry.weight;
     if (roll <= 0) {
-      return entry.item;
+      return {
+        item: entry.item,
+        meta: {
+          poolSize: items.length,
+          totalWeight: Number(sum.toFixed(6)),
+          roll: Number(weightedRoll.toFixed(6)),
+          mode: "weighted",
+          selectedWeight: Number(entry.weight.toFixed(6)),
+        },
+      };
     }
   }
-  return weighted[weighted.length - 1]?.item || null;
+  const selected = weighted[weighted.length - 1] || null;
+  return {
+    item: selected?.item || null,
+    meta: {
+      poolSize: items.length,
+      totalWeight: Number(sum.toFixed(6)),
+      roll: Number(weightedRoll.toFixed(6)),
+      mode: "weighted_fallback",
+      selectedWeight: Number((selected?.weight || 0).toFixed(6)),
+    },
+  };
 }
 
 function getComponentScore(componentId) {
@@ -810,6 +841,12 @@ function getComponentScore(componentId) {
     return 0;
   }
   return (Number(component.stats?.hp) || 0) + (Number(component.stats?.attack) || 0);
+}
+
+function getComponentWeight(componentId) {
+  const component = componentById[componentId];
+  const weight = Number(component?.weight);
+  return Number.isFinite(weight) && weight > 0 ? weight : 1;
 }
 
 function getSlotUpgradePool(slot, currentId) {
@@ -830,7 +867,27 @@ function tryApplyWinnerDrop(user, powerDelta, rngTrace = null) {
     .map((slot) => ({ slot, upgrades: getSlotUpgradePool(slot, preset[slot]) }))
     .filter((entry) => entry.upgrades.length > 0);
   if (!slotsWithUpgrades.length) {
-    return { item: null, meta: { reason: "no_upgrade_pool" } };
+    return {
+      item: null,
+      meta: {
+        reason: "no_upgrade_pool",
+        selection: {
+          context: "winner_upgrade",
+          slot: null,
+          currentComponentId: null,
+          candidatePoolSize: 0,
+          candidateId: null,
+          gain: null,
+          drop: null,
+          componentWeight: null,
+          finalWeight: null,
+          antiJumpWeight: null,
+          roll: null,
+          totalWeight: null,
+          selectionMode: "empty_pool",
+        },
+      },
+    };
   }
 
   const dropChance = clampNumber(0.28 + (powerDelta * 0.15), 0.2, 0.8);
@@ -838,22 +895,58 @@ function tryApplyWinnerDrop(user, powerDelta, rngTrace = null) {
   if (dropRoll > dropChance) {
     return {
       item: null,
-      meta: { reason: "chance_failed", dropChance: Number(dropChance.toFixed(4)), dropRoll: Number(dropRoll.toFixed(6)) },
+      meta: {
+        reason: "chance_failed",
+        dropChance: Number(dropChance.toFixed(4)),
+        dropRoll: Number(dropRoll.toFixed(6)),
+        selection: {
+          context: "winner_upgrade",
+          slot: null,
+          currentComponentId: null,
+          candidatePoolSize: 0,
+          candidateId: null,
+          gain: null,
+          drop: null,
+          componentWeight: null,
+          finalWeight: null,
+          antiJumpWeight: null,
+          roll: Number(dropRoll.toFixed(6)),
+          totalWeight: null,
+          selectionMode: "chance_failed",
+        },
+      },
     };
   }
 
   const slotIdx = Math.floor(drawRandom(rngTrace, "winner.drop.slot_roll") * slotsWithUpgrades.length);
   const slotEntry = slotsWithUpgrades[slotIdx];
-  const currentScore = getComponentScore(preset[slotEntry.slot]);
-  const pickedUpgrade = pickWeightedCandidate(slotEntry.upgrades, (candidateId) => {
+  const currentComponentId = preset[slotEntry.slot];
+  const currentScore = getComponentScore(currentComponentId);
+  const upgradeCandidates = slotEntry.upgrades.map((candidateId) => {
     const gain = Math.max(1, getComponentScore(candidateId) - currentScore);
-    return 1 / (gain * gain);
-  }, rngTrace, "winner.drop.component_roll");
-  if (!pickedUpgrade) {
+    const antiJumpWeight = 1 / (gain * gain);
+    const componentWeight = getComponentWeight(candidateId);
+    const finalWeight = antiJumpWeight * componentWeight;
+    return {
+      componentId: candidateId,
+      gain,
+      antiJumpWeight: Number(antiJumpWeight.toFixed(6)),
+      componentWeight: Number(componentWeight.toFixed(6)),
+      finalWeight: Number(finalWeight.toFixed(6)),
+    };
+  });
+  const pickedUpgradeResult = pickWeightedCandidate(
+    upgradeCandidates,
+    (candidate) => candidate.finalWeight,
+    rngTrace,
+    "winner.drop.component_roll",
+  );
+  const pickedUpgrade = pickedUpgradeResult.item;
+  if (!pickedUpgrade?.componentId) {
     return { item: null, meta: { reason: "no_component_selected" } };
   }
 
-  const nextPreset = { ...preset, [slotEntry.slot]: pickedUpgrade };
+  const nextPreset = { ...preset, [slotEntry.slot]: pickedUpgrade.componentId };
   try {
     validatePresetOrThrow(nextPreset);
   } catch {
@@ -863,12 +956,27 @@ function tryApplyWinnerDrop(user, powerDelta, rngTrace = null) {
   user.preset = nextPreset;
   user.classId = detectPresetDominantBaseClass(nextPreset);
   return {
-    item: { slot: slotEntry.slot, componentId: pickedUpgrade },
+    item: { slot: slotEntry.slot, componentId: pickedUpgrade.componentId },
     meta: {
       reason: "applied",
       dropChance: Number(dropChance.toFixed(4)),
       dropRoll: Number(dropRoll.toFixed(6)),
       slotPoolSize: slotsWithUpgrades.length,
+      selection: {
+        context: "winner_upgrade",
+        slot: slotEntry.slot,
+        currentComponentId,
+        candidatePoolSize: upgradeCandidates.length,
+        candidateId: pickedUpgrade.componentId,
+        gain: pickedUpgrade.gain,
+        drop: null,
+        componentWeight: pickedUpgrade.componentWeight,
+        finalWeight: pickedUpgrade.finalWeight,
+        antiJumpWeight: pickedUpgrade.antiJumpWeight,
+        roll: pickedUpgradeResult.meta.roll,
+        totalWeight: pickedUpgradeResult.meta.totalWeight,
+        selectionMode: pickedUpgradeResult.meta.mode,
+      },
     },
   };
 }
@@ -879,7 +987,27 @@ function tryApplyLoserDowngrade(user, powerDelta, rngTrace = null) {
     .map((slot) => ({ slot, downgrades: getSlotDowngradePool(slot, preset[slot]) }))
     .filter((entry) => entry.downgrades.length > 0);
   if (!slotsWithDowngrades.length) {
-    return { item: null, meta: { reason: "no_downgrade_pool" } };
+    return {
+      item: null,
+      meta: {
+        reason: "no_downgrade_pool",
+        selection: {
+          context: "loser_downgrade",
+          slot: null,
+          currentComponentId: null,
+          candidatePoolSize: 0,
+          candidateId: null,
+          gain: null,
+          drop: null,
+          componentWeight: null,
+          finalWeight: null,
+          antiJumpWeight: null,
+          roll: null,
+          totalWeight: null,
+          selectionMode: "empty_pool",
+        },
+      },
+    };
   }
 
   const loseStreak = Math.max(0, Number(user.loseStreak) || 0);
@@ -894,22 +1022,54 @@ function tryApplyLoserDowngrade(user, powerDelta, rngTrace = null) {
         downgradeChance: Number(downgradeChance.toFixed(4)),
         downgradeRoll: Number(downgradeRoll.toFixed(6)),
         streakShield: Number(streakShield.toFixed(4)),
+        selection: {
+          context: "loser_downgrade",
+          slot: null,
+          currentComponentId: null,
+          candidatePoolSize: 0,
+          candidateId: null,
+          gain: null,
+          drop: null,
+          componentWeight: null,
+          finalWeight: null,
+          antiJumpWeight: null,
+          roll: Number(downgradeRoll.toFixed(6)),
+          totalWeight: null,
+          selectionMode: "chance_failed",
+        },
       },
     };
   }
 
   const slotIdx = Math.floor(drawRandom(rngTrace, "loser.downgrade.slot_roll") * slotsWithDowngrades.length);
   const slotEntry = slotsWithDowngrades[slotIdx];
-  const currentScore = getComponentScore(preset[slotEntry.slot]);
-  const pickedDowngrade = pickWeightedCandidate(slotEntry.downgrades, (candidateId) => {
+  const currentComponentId = preset[slotEntry.slot];
+  const currentScore = getComponentScore(currentComponentId);
+  const downgradeCandidates = slotEntry.downgrades.map((candidateId) => {
     const drop = Math.max(1, currentScore - getComponentScore(candidateId));
-    return 1 / (drop * drop * drop);
-  }, rngTrace, "loser.downgrade.component_roll");
-  if (!pickedDowngrade) {
+    const antiJumpWeight = 1 / (drop * drop * drop);
+    const componentWeight = getComponentWeight(candidateId);
+    const finalWeight = antiJumpWeight * componentWeight;
+    return {
+      componentId: candidateId,
+      drop,
+      antiJumpWeight: Number(antiJumpWeight.toFixed(6)),
+      componentWeight: Number(componentWeight.toFixed(6)),
+      finalWeight: Number(finalWeight.toFixed(6)),
+    };
+  });
+  const pickedDowngradeResult = pickWeightedCandidate(
+    downgradeCandidates,
+    (candidate) => candidate.finalWeight,
+    rngTrace,
+    "loser.downgrade.component_roll",
+  );
+  const pickedDowngrade = pickedDowngradeResult.item;
+  if (!pickedDowngrade?.componentId) {
     return { item: null, meta: { reason: "no_component_selected" } };
   }
 
-  const nextPreset = { ...preset, [slotEntry.slot]: pickedDowngrade };
+  const nextPreset = { ...preset, [slotEntry.slot]: pickedDowngrade.componentId };
   try {
     validatePresetOrThrow(nextPreset);
   } catch {
@@ -919,13 +1079,28 @@ function tryApplyLoserDowngrade(user, powerDelta, rngTrace = null) {
   user.preset = nextPreset;
   user.classId = detectPresetDominantBaseClass(nextPreset);
   return {
-    item: { slot: slotEntry.slot, componentId: pickedDowngrade },
+    item: { slot: slotEntry.slot, componentId: pickedDowngrade.componentId },
     meta: {
       reason: "applied",
       downgradeChance: Number(downgradeChance.toFixed(4)),
       downgradeRoll: Number(downgradeRoll.toFixed(6)),
       slotPoolSize: slotsWithDowngrades.length,
       streakShield: Number(streakShield.toFixed(4)),
+      selection: {
+        context: "loser_downgrade",
+        slot: slotEntry.slot,
+        currentComponentId,
+        candidatePoolSize: downgradeCandidates.length,
+        candidateId: pickedDowngrade.componentId,
+        gain: null,
+        drop: pickedDowngrade.drop,
+        componentWeight: pickedDowngrade.componentWeight,
+        finalWeight: pickedDowngrade.finalWeight,
+        antiJumpWeight: pickedDowngrade.antiJumpWeight,
+        roll: pickedDowngradeResult.meta.roll,
+        totalWeight: pickedDowngradeResult.meta.totalWeight,
+        selectionMode: pickedDowngradeResult.meta.mode,
+      },
     },
   };
 }
@@ -1664,7 +1839,8 @@ function persistRuntimeStore(runtimeStore) {
 
 function createRandomUser(runtimeStore) {
   const templateKey = "random";
-  const user = createUserFromTemplate(templateKey, runtimeStore.nextUserId);
+  const spawnSelectionTelemetry = [];
+  const user = createUserFromTemplate(templateKey, runtimeStore.nextUserId, true, spawnSelectionTelemetry);
   runtimeStore.nextUserId += 1;
   runtimeStore.users.push(user);
   if (!runtimeStore.gameState.finished) {
@@ -1672,6 +1848,16 @@ function createRandomUser(runtimeStore) {
     applyRatingsFromLeaderboard(runtimeStore.users, leaderboard);
   }
   persistRuntimeStore(runtimeStore);
+  postBattleTelemetry({
+    type: "component_roll",
+    ts: new Date().toISOString(),
+    context: "spawn",
+    userId: user.id,
+    userName: user.name,
+    templateKey: user.templateKey,
+    classId: user.classId,
+    selections: spawnSelectionTelemetry,
+  });
   return user;
 }
 

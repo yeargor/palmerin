@@ -54,6 +54,7 @@ class SpriteComponent {
     anchor = null,
     baseClass = "shared",
     stats = {},
+    weight = 1,
   }) {
     this.id = id;
     this.slot = slot;
@@ -66,6 +67,7 @@ class SpriteComponent {
       hp: Number.isFinite(stats.hp) ? stats.hp : 0,
       attack: Number.isFinite(stats.attack) ? stats.attack : 0,
     };
+    this.weight = Number.isFinite(weight) && weight > 0 ? weight : 1;
   }
 }
 
@@ -77,6 +79,7 @@ export const componentById = {
     anchor: { pattern: "/\\", targetIndexes: [1, 1] },
     baseClass: "warrior",
     stats: { hp: 2, attack: 0 },
+    weight: 1,
   }),
   hat_mage: new SpriteComponent({
     id: "hat_mage",
@@ -86,6 +89,7 @@ export const componentById = {
     anchor: { pattern: "__/  \\___", targetIndexes: [3, 5] },
     baseClass: "mage",
     stats: { hp: 1, attack: 1 },
+    weight: 1,
   }),
   hat_cowboy: new SpriteComponent({
     id: "hat_cowboy",
@@ -94,6 +98,7 @@ export const componentById = {
     anchor: { pattern: "__/--\\___", targetIndexes: [3, 5] },
     baseClass: "cowboy",
     stats: { hp: 1, attack: 1 },
+    weight: 1,
   }),
 
   face_plain: new SpriteComponent({
@@ -102,6 +107,7 @@ export const componentById = {
     layers: [makeLayer(0, 2, "( ·  ·)")],
     anchor: { pattern: "( ·  ·)", targetIndexes: [2, 4] },
     stats: { hp: 1, attack: 1 },
+    weight: 1,
   }),
   face_bandana: new SpriteComponent({
     id: "face_bandana",
@@ -110,6 +116,7 @@ export const componentById = {
     anchor: { pattern: ">( ·  ·)", targetIndexes: [3, 5] },
     baseClass: "cowboy",
     stats: { hp: 1, attack: 1 },
+    weight: 1,
   }),
 
   arms_warrior: new SpriteComponent({
@@ -124,6 +131,7 @@ export const componentById = {
     anchor: { pattern: "<( ^ )>", targetIndexes: [3, 5] },
     baseClass: "warrior",
     stats: { hp: 1, attack: 2 },
+    weight: 1,
   }),
   arms_mage: new SpriteComponent({
     id: "arms_mage",
@@ -132,6 +140,7 @@ export const componentById = {
     anchor: { pattern: "/   \\", targetIndexes: [0, 4] },
     baseClass: "shared",
     stats: { hp: 1, attack: 1 },
+    weight: 1,
   }),
   arms_mage_mantle_top: new SpriteComponent({
     id: "arms_mage_mantle_top",
@@ -148,6 +157,7 @@ export const componentById = {
     anchor: { pattern: "/  o\\", targetIndexes: [2, 2] },
     baseClass: "mage",
     stats: { hp: 1, attack: 2 },
+    weight: 1,
   }),
   arms_cowboy: new SpriteComponent({
     id: "arms_cowboy",
@@ -161,6 +171,7 @@ export const componentById = {
     anchor: { pattern: "| _", targetIndexes: [2, 2] },
     baseClass: "cowboy",
     stats: { hp: 0, attack: 4 },
+    weight: 1,
   }),
 
   torso_warrior: new SpriteComponent({
@@ -170,6 +181,7 @@ export const componentById = {
     anchor: { pattern: "/|___|\\", targetIndexes: [2, 4] },
     baseClass: "warrior",
     stats: { hp: 3, attack: 1 },
+    weight: 1,
   }),
   torso_mage: new SpriteComponent({
     id: "torso_mage",
@@ -178,6 +190,7 @@ export const componentById = {
     anchor: { pattern: "/_____\\", targetIndexes: [2, 4] },
     baseClass: "mage",
     stats: { hp: 2, attack: 2 },
+    weight: 1,
   }),
   torso_mage_mantle_bottom: new SpriteComponent({
     id: "torso_mage_mantle_bottom",
@@ -186,6 +199,7 @@ export const componentById = {
     anchor: { pattern: "/__/\\_\\", targetIndexes: [3, 4] },
     baseClass: "mage",
     stats: { hp: 2, attack: 2 },
+    weight: 1,
   }),
   torso_cowboy: new SpriteComponent({
     id: "torso_cowboy",
@@ -194,6 +208,7 @@ export const componentById = {
     anchor: { pattern: "/+++0+\\", targetIndexes: [2, 4] },
     baseClass: "cowboy",
     stats: { hp: 1, attack: 2 },
+    weight: 1,
   }),
 
   legs_boots: new SpriteComponent({
@@ -202,6 +217,7 @@ export const componentById = {
     layers: [makeLayer(0, 2, "/_/ \\_\\")],
     anchor: { pattern: "/_/ \\_\\", targetIndexes: [3, 3] },
     stats: { hp: 1, attack: 1 },
+    weight: 1,
   }),
 };
 
@@ -274,8 +290,78 @@ export function detectPresetDominantBaseClass(preset) {
   return leaders[0];
 }
 
-function randomFrom(list) {
-  return list[Math.floor(Math.random() * list.length)];
+function getComponentWeight(componentId) {
+  const component = componentById[componentId];
+  const weight = Number(component?.weight);
+  return Number.isFinite(weight) && weight > 0 ? weight : 1;
+}
+
+function randomFromByWeight(componentIds) {
+  const selection = randomFromByWeightWithMeta(componentIds);
+  return selection.componentId;
+}
+
+function randomFromByWeightWithMeta(componentIds) {
+  if (!Array.isArray(componentIds) || !componentIds.length) {
+    return {
+      componentId: null,
+      meta: {
+        poolSize: 0,
+        totalWeight: 0,
+        roll: null,
+        mode: "empty",
+        selectedWeight: 0,
+      },
+    };
+  }
+  const weighted = componentIds.map((componentId) => ({
+    componentId,
+    weight: getComponentWeight(componentId),
+  }));
+  const total = weighted.reduce((sum, entry) => sum + entry.weight, 0);
+  if (total <= 0) {
+    const uniformRoll = Math.random();
+    const idx = Math.floor(uniformRoll * componentIds.length);
+    const selectedId = componentIds[idx] || null;
+    return {
+      componentId: selectedId,
+      meta: {
+        poolSize: componentIds.length,
+        totalWeight: 0,
+        roll: Number(uniformRoll.toFixed(6)),
+        mode: "uniform_fallback",
+        selectedWeight: Number(getComponentWeight(selectedId).toFixed(6)),
+      },
+    };
+  }
+  const weightedRoll = Math.random() * total;
+  let roll = weightedRoll;
+  for (const entry of weighted) {
+    roll -= entry.weight;
+    if (roll <= 0) {
+      return {
+        componentId: entry.componentId,
+        meta: {
+          poolSize: componentIds.length,
+          totalWeight: Number(total.toFixed(6)),
+          roll: Number(weightedRoll.toFixed(6)),
+          mode: "weighted",
+          selectedWeight: Number(entry.weight.toFixed(6)),
+        },
+      };
+    }
+  }
+  const selected = weighted[weighted.length - 1] || null;
+  return {
+    componentId: selected?.componentId || null,
+    meta: {
+      poolSize: componentIds.length,
+      totalWeight: Number(total.toFixed(6)),
+      roll: Number(weightedRoll.toFixed(6)),
+      mode: "weighted_fallback",
+      selectedWeight: Number((selected?.weight || 0).toFixed(6)),
+    },
+  };
 }
 
 function clampCombatStat(value) {
@@ -642,17 +728,33 @@ export function renderPresetToSprite(preset, profileClassId = "warrior") {
   };
 }
 
-export function buildRandomPreset(maxAttempts = 60) {
+export function buildRandomPreset(maxAttempts = 60, selectionTelemetry = null) {
   for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const attemptTelemetry = [];
+    const pickHat = randomFromByWeightWithMeta(randomPoolBySlot.hat);
+    const pickFace = randomFromByWeightWithMeta(randomPoolBySlot.face);
+    const pickArms = randomFromByWeightWithMeta(randomPoolBySlot.arms);
+    const pickTorso = randomFromByWeightWithMeta(randomPoolBySlot.torso);
+    const pickLegs = randomFromByWeightWithMeta(randomPoolBySlot.legs);
     const candidate = {
-      hat: randomFrom(randomPoolBySlot.hat),
-      face: randomFrom(randomPoolBySlot.face),
-      arms: randomFrom(randomPoolBySlot.arms),
-      torso: randomFrom(randomPoolBySlot.torso),
-      legs: randomFrom(randomPoolBySlot.legs),
+      hat: pickHat.componentId,
+      face: pickFace.componentId,
+      arms: pickArms.componentId,
+      torso: pickTorso.componentId,
+      legs: pickLegs.componentId,
     };
+    attemptTelemetry.push(
+      { context: "spawn", slot: "hat", candidateId: pickHat.componentId, currentComponentId: null, gain: null, drop: null, componentWeight: pickHat.meta.selectedWeight, finalWeight: pickHat.meta.selectedWeight, roll: pickHat.meta.roll, candidatePoolSize: pickHat.meta.poolSize, totalWeight: pickHat.meta.totalWeight, selectionMode: pickHat.meta.mode, attempt: attempt + 1 },
+      { context: "spawn", slot: "face", candidateId: pickFace.componentId, currentComponentId: null, gain: null, drop: null, componentWeight: pickFace.meta.selectedWeight, finalWeight: pickFace.meta.selectedWeight, roll: pickFace.meta.roll, candidatePoolSize: pickFace.meta.poolSize, totalWeight: pickFace.meta.totalWeight, selectionMode: pickFace.meta.mode, attempt: attempt + 1 },
+      { context: "spawn", slot: "arms", candidateId: pickArms.componentId, currentComponentId: null, gain: null, drop: null, componentWeight: pickArms.meta.selectedWeight, finalWeight: pickArms.meta.selectedWeight, roll: pickArms.meta.roll, candidatePoolSize: pickArms.meta.poolSize, totalWeight: pickArms.meta.totalWeight, selectionMode: pickArms.meta.mode, attempt: attempt + 1 },
+      { context: "spawn", slot: "torso", candidateId: pickTorso.componentId, currentComponentId: null, gain: null, drop: null, componentWeight: pickTorso.meta.selectedWeight, finalWeight: pickTorso.meta.selectedWeight, roll: pickTorso.meta.roll, candidatePoolSize: pickTorso.meta.poolSize, totalWeight: pickTorso.meta.totalWeight, selectionMode: pickTorso.meta.mode, attempt: attempt + 1 },
+      { context: "spawn", slot: "legs", candidateId: pickLegs.componentId, currentComponentId: null, gain: null, drop: null, componentWeight: pickLegs.meta.selectedWeight, finalWeight: pickLegs.meta.selectedWeight, roll: pickLegs.meta.roll, candidatePoolSize: pickLegs.meta.poolSize, totalWeight: pickLegs.meta.totalWeight, selectionMode: pickLegs.meta.mode, attempt: attempt + 1 },
+    );
     try {
       validatePresetOrThrow(candidate);
+      if (Array.isArray(selectionTelemetry)) {
+        selectionTelemetry.push(...attemptTelemetry);
+      }
       return candidate;
     } catch {
       // continue
