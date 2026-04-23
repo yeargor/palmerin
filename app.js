@@ -13,6 +13,7 @@ import {
   renderPresetToSprite,
 } from "./src/sprite-constructor.js";
 import { CHARACTER_QUOTES } from "./src/character-quotes.js";
+import { createApiClient, probeBackendConnection } from "./src/api-client.js";
 
 const tg = window.Telegram?.WebApp;
 
@@ -20,6 +21,15 @@ if (tg) {
   tg.ready();
   tg.expand();
 }
+
+const apiClient = createApiClient();
+void probeBackendConnection(apiClient)
+  .then((result) => {
+    console.info("[api] backend probe ok", result.baseUrl, result.health?.ok, result.ready?.ready);
+  })
+  .catch((error) => {
+    console.warn("[api] backend probe failed", error instanceof Error ? error.message : error);
+  });
 
 const profileTemplateByParam = {
   club: {

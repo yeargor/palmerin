@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "backend:dev": "node ./apps/backend/server.mjs",
     "serve:logs": "node ./scripts/serve-with-logs.mjs",
     "simulate:battle": "node ./scripts/simulate-battle-run.mjs",
     "simulate:battle:smoke": "node ./scripts/simulate-battle-run.mjs --smoke",
