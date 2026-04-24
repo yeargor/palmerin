@@ -335,6 +335,7 @@ let latestRenderedSpriteMeta = {
 };
 let currentCombatStats = { hp: 1, attack: 1 };
 let battleTelemetryTickId = 0;
+const LOGO_TEXT_COLUMNS = 74;
 
 function getStartParam() {
   const fromTelegram = String(tg?.initDataUnsafe?.start_param || "").trim().toLowerCase();
@@ -3689,16 +3690,13 @@ function fitLogoToViewport() {
     return;
   }
 
-  logoEl.style.transform = "scale(1)";
+  logoEl.style.transform = "none";
   const wrapWidth = logoWrapEl.clientWidth;
-  const logoWidth = logoEl.scrollWidth;
-
-  if (!wrapWidth || !logoWidth) {
+  if (!wrapWidth) {
     return;
   }
-
-  const scale = Math.min(1, wrapWidth / logoWidth);
-  logoEl.style.transform = `scale(${scale})`;
+  const nextSize = Math.min(14, Math.max(7, Math.floor(wrapWidth / LOGO_TEXT_COLUMNS)));
+  logoEl.style.fontSize = `${nextSize}px`;
 }
 
 function fitAdminTableToViewport() {
