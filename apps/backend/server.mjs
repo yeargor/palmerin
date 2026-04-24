@@ -43,6 +43,7 @@ const env = {
     .map((value) => value.trim())
     .filter(Boolean),
   battleTickIntervalMs: Number.parseInt(process.env.BATTLE_TICK_INTERVAL_MS || '300000', 10),
+  matchmakingMaxDelta: Number.parseFloat(process.env.MATCHMAKING_MAX_DELTA || '1.75'),
   systemLogIntervalMs: Number.parseInt(process.env.SYSTEM_LOG_INTERVAL_MS || '2500', 10),
   adminTelegramUserIds: String(process.env.ADMIN_TELEGRAM_USER_IDS || '')
     .split(',')
@@ -322,6 +323,7 @@ function buildPublicGameState() {
 function buildPublicRuntimeConfig() {
   return {
     battleTickIntervalMs: env.battleTickIntervalMs,
+    matchmakingMaxDelta: env.matchmakingMaxDelta,
     systemLogIntervalMs: env.systemLogIntervalMs,
   };
 }
@@ -570,7 +572,10 @@ function maybeRunBattleTick(nowMs) {
     return;
   }
   store.gameState.telemetryTickId = Math.max(0, Number(store.gameState.telemetryTickId) || 0) + 1;
-  const outcome = runBattleTick(participants);
+  const outcome = runBattleTick(participants, {
+    currentTick: store.gameState.telemetryTickId,
+    matchmakingMaxDelta: env.matchmakingMaxDelta,
+  });
   store.gameState.lastBattleTickAt = nowMs;
   if (outcome?.leaderboard?.length) {
     store.gameState.frozenLeaderboard = [];
@@ -682,6 +687,7 @@ const server = http.createServer(async (req, res) => {
           dbPath: dbStore.dbPath,
           config: {
             battleTickIntervalMs: env.battleTickIntervalMs,
+            matchmakingMaxDelta: env.matchmakingMaxDelta,
             systemLogIntervalMs: env.systemLogIntervalMs,
           },
           at: nowIso(),
