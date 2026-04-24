@@ -4,7 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "web:dev": "node ./scripts/serve-with-logs.mjs",
     "backend:dev": "node ./apps/backend/server.mjs",
+    "db:migrate": "node ./scripts/db-migrate.mjs",
     "serve:logs": "node ./scripts/serve-with-logs.mjs",
     "simulate:battle": "node ./scripts/simulate-battle-run.mjs",
     "simulate:battle:smoke": "node ./scripts/simulate-battle-run.mjs --smoke",
@@ -15,5 +17,8 @@
   },
   "devDependencies": {
     "playwright": "^1.55.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.10.0"
   }
 }

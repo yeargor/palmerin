@@ -6,8 +6,8 @@ const rootDir = path.resolve(path.dirname(new URL(import.meta.url).pathname), ".
 const outDir = path.join(rootDir, "artifacts", "mobile");
 
 const targets = [
-  { name: "club", url: "http://127.0.0.1:4173/?startapp=club" },
-  { name: "ghost", url: "http://127.0.0.1:4173/?startapp=ghost" },
+  { name: "club", url: "http://127.0.0.1:4173/apps/web/index.html?startapp=club" },
+  { name: "ghost", url: "http://127.0.0.1:4173/apps/web/index.html?startapp=ghost" },
 ];
 
 const profiles = [

@@ -42,6 +42,10 @@ body {
   overflow: hidden;
 }
 
+.app-booting .app {
+  visibility: hidden;
+}
+
 .close-ascii-btn {
   position: absolute;
   left: 10px;
@@ -145,12 +149,17 @@ body {
 }
 
 .admin-screen {
-  height: 100%;
+  height: 100dvh;
   min-height: 100svh;
+  width: 100%;
+  max-width: 100%;
   background: #000000;
   color: #ffffff;
   padding: 12px;
-  overflow: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .admin-title {
@@ -160,36 +169,62 @@ body {
 }
 
 .admin-summary {
-  margin: 0 0 10px;
-  color: #b7b7b7;
+  margin: 0;
+  color: #ffffff;
   font-size: 13px;
 }
 
-.admin-list {
-  display: grid;
-  gap: 4px;
+.admin-table-wrap {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 96%;
+  max-width: 96%;
+  margin: 0 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  border: 1px solid #2a2a2a;
+  padding: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
 }
 
-.admin-row {
+.admin-table {
   margin: 0;
-  border: 0;
-  background: transparent;
-  font-size: 15px;
+  display: inline-block;
+  width: max-content;
+  min-width: 0;
+  max-width: none;
+  font-size: clamp(10px, 2.5vw, 12px);
   line-height: 1.3;
-  white-space: pre-wrap;
+  white-space: pre;
   color: #ffffff;
-  text-align: left;
   font-family: "Courier New", Courier, monospace;
-  padding: 0;
-  cursor: pointer;
+  text-align: left;
+  transform-origin: top center;
 }
 
-.admin-row-winner {
+.admin-table-top5 {
   color: #ffd400;
 }
 
+.admin-bottom {
+  position: sticky;
+  bottom: 0;
+  min-width: 0;
+  width: 100%;
+  background: #000000;
+  border-top: 1px solid #2a2a2a;
+  padding-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .admin-actions {
-  margin-top: 12px;
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
@@ -211,10 +246,60 @@ body {
   cursor: not-allowed;
 }
 
+.admin-close-btn {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
 .admin-note {
-  margin: 10px 0 0;
-  color: #b7b7b7;
+  margin: 0;
+  color: #ffffff;
   font-size: 12px;
+}
+
+.live-leaderboard-screen {
+  height: 100dvh;
+  min-height: 100svh;
+  width: 100%;
+  max-width: 100%;
+  background: #000000;
+  color: #ffffff;
+  padding: 10px 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.live-admin-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  padding: 10px;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.live-admin-table {
+  font-size: clamp(9px, 1.35vw, 18px);
+  line-height: 1.25;
+}
+
+.live-footer {
+  border-top: 1px solid #2a2a2a;
+  padding-top: 8px;
+}
+
+@media (orientation: portrait) {
+  .live-admin-table {
+    font-size: clamp(9px, 2.4vw, 13px);
+  }
 }
 
 @keyframes profile-active-blink {

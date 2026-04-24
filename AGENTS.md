@@ -18,3 +18,9 @@
 - `docs/mage_sprite.txt` - canonical mage sprite.
 - `docs/cowboy_sprite.txt` - canonical cowboy sprite.
 - `docs/character_generator_architecture.md` - generator architecture, component system, centering, grid, offsets, and extension rules.
+- `apps/web/index.html` - canonical frontend entrypoint.
+- `apps/web/app.js` - frontend runtime and UI orchestration.
+- `apps/backend/server.mjs` - backend API and authoritative game loop.
+- `packages/core/sprite-constructor.js` - sprite constructor and component metadata.
+- `packages/core/battle-engine.mjs` - battle/progression calculations used by backend.
+- `packages/db/sqlite-store.mjs` - SQLite persistence layer.

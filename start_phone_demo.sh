@@ -67,8 +67,8 @@ echo "$URL" > "$URL_FILE"
 PASS_HINT="$(curl -fsS https://loca.lt/mytunnelpassword 2>/dev/null || true)"
 
 echo "Mini App demo is running."
-echo "Local URL: http://127.0.0.1:${PORT}"
-echo "Public URL: ${URL}"
+echo "Local URL: http://127.0.0.1:${PORT}/apps/web/index.html"
+echo "Public URL: ${URL}/apps/web/index.html"
 if [[ -n "$PASS_HINT" ]]; then
   echo "Tunnel password (if asked by loca.lt): ${PASS_HINT}"
 fi

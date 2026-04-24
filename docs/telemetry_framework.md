@@ -187,7 +187,7 @@ rg '"pairs":\[\],"decisions"' artifacts/battle/battle-events.jsonl
 
 Что делает скрипт:
 1. Очищает `artifacts/battle/battle-events.jsonl`.
-2. Открывает админку (`?view=admin&startapp=random`).
+2. Открывает админку (`/apps/web/index.html?view=admin&startapp=random`).
 3. Нажимает `[clear users]` (если доступно).
 4. Создаёт заданное количество пользователей (`[new user]`).
 5. Запускает битвы (`[start battles]`).

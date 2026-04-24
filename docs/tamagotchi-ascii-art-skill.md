@@ -91,7 +91,7 @@ When validating profile sprites in the UI, take screenshots with sprite debug mo
 For class-specific checks, combine it with the target profile:
 
 ```text
-?startapp=mage&debugSprite=1
+/apps/web/index.html?startapp=mage&debugSprite=1
 ```
 
 The debug screenshot is the required artifact for sprite rendering fixes because it shows the rendered sprite together with alignment guides, computed font metrics, line widths, glyph widths, viewport data, and the current URL. Normal screenshots are useful for final visual review, but they are not enough to diagnose spacing, font, cache, or per-origin rendering problems.

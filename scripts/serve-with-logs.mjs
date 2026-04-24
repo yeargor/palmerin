@@ -87,7 +87,7 @@ async function serveStatic(req, res) {
 
     const fileStat = await fs.stat(targetPath).catch(() => null);
     if (!fileStat || !fileStat.isFile()) {
-      targetPath = path.join(rootDir, "index.html");
+      targetPath = path.join(rootDir, "apps", "web", "index.html");
     }
 
     const ext = path.extname(targetPath).toLowerCase();

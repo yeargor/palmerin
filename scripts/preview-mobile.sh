@@ -28,8 +28,8 @@ if ! kill -0 "$SERVER_PID" 2>/dev/null; then
   exit 1
 fi
 
-LOCAL_URL="http://127.0.0.1:${PORT}/?startapp=club"
-LAN_URL="http://${LAN_IP}:${PORT}/?startapp=club"
+LOCAL_URL="http://127.0.0.1:${PORT}/apps/web/index.html?startapp=club"
+LAN_URL="http://${LAN_IP}:${PORT}/apps/web/index.html?startapp=club"
 
 echo "Mini App preview is running."
 echo "Desktop URL: ${LOCAL_URL}"

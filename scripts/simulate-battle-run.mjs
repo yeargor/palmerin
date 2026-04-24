@@ -69,7 +69,7 @@ async function runSimulation(options) {
 
   const browser = await chromium.launch({ headless: !options.headed });
   const page = await browser.newPage({ viewport: { width: 430, height: 932 } });
-  const adminUrl = `${options.baseUrl}/?view=admin&startapp=random&v=sim_${Date.now()}`;
+  const adminUrl = `${options.baseUrl}/apps/web/index.html?view=admin&startapp=random&v=sim_${Date.now()}`;
 
   try {
     await page.goto(adminUrl, { waitUntil: "networkidle" });
@@ -83,9 +83,6 @@ async function runSimulation(options) {
     }
 
     await page.click("#adminStartBattlesBtn");
-    // Battle engine ticks run on the profile page (not in admin view), so switch into a user session.
-    const firstUserRow = page.locator(".admin-row").first();
-    await firstUserRow.click();
     await page.waitForTimeout(options.durationMs);
 
     // Return to admin view and freeze the run.

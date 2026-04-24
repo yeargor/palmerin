@@ -36,8 +36,8 @@ npm run capture:mobile
 
 ## Параметр профиля (для QR/deep-link демо)
 
-- `?startapp=club`
-- `?startapp=ghost`
+- `/apps/web/index.html?startapp=club`
+- `/apps/web/index.html?startapp=ghost`
 
 Также поддерживаются `start_param` и `profile`.
 
@@ -50,3 +50,18 @@ npm run capture:mobile
 - Симуляция событий каждые 10 секунд
 - Цвета: `#000000`, `#FFFFFF`, `#FE0F0E`
 - Цветные щит и меч в ASCII-спрайте по `tamagotchi-ascii-art-skill.md`
+
+## Деплой фронтенда на GitHub Pages
+
+1. Запушить репозиторий на GitHub в ветку `main`.
+2. В репозитории включить Pages: `Settings -> Pages -> Source: GitHub Actions`.
+3. Workflow уже добавлен: `.github/workflows/deploy-pages.yml`.
+4. После первого деплоя фронт будет доступен по `https://<user>.github.io/<repo>/`.
+
+Важно для API:
+- Во фронте прописан `miniapp:api-base = https://palmerin.ru` (`apps/web/index.html`).
+- На backend в `CORS_ALLOWED_ORIGINS` нужно добавить origin GitHub Pages:
+  - `https://<user>.github.io`
+
+Важно для Telegram Mini App:
+- В BotFather web app URL должен быть HTTPS URL GitHub Pages или ваш кастомный домен на Pages.

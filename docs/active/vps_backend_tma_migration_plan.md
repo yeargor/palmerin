@@ -1,163 +1,238 @@
-# Active Plan: Split Monolith -> VPS Backend + Telegram Mini App Frontend
+# VPS Backend + Telegram Mini App Migration Runbook
 
-Контекст: сейчас проект работает как монолит с локальным runtime-состоянием в UI.  
-Цель: разделить систему на `backend (VPS)` и `frontend (Telegram Mini App)` без потери текущей игровой логики и UI.
+## 1) Цель документа
 
-## 1) Зафиксированные архитектурные решения
+Этот файл — единая точка восстановления контекста.
+Если память очищена, достаточно прочитать разделы `2`, `3`, `6`, `7`, `8` и можно продолжать работу без дополнительных источников.
 
-- `Frontend (TMA)`: только UI и пользовательские команды.
+## 2) TL;DR (текущее состояние)
+
+- Монолит уже разделен по runtime-ответственности:
+  - `frontend`: `apps/web/*`
+  - `backend`: `apps/backend/*`
+  - `shared domain`: `packages/core/*`
+  - `persistence`: `packages/db/*`
+- План A (рефактор и перенос authoritative state на backend) завершен.
+- Следующий этап: Plan M (ручной smoke + сбор продуктового фидбека), затем Plan B.
+- Серверная модель: `systemd` (PM2 не используем).
+- БД: SQLite.
+
+## 3) Быстрый старт (после потери памяти)
+
+1. Проверить, что backend и web поднимаются:
+- `npm run db:migrate`
+- `npm run backend:dev`
+- `npm run web:dev`
+
+2. Проверить health и web entry:
+- `curl http://127.0.0.1:3001/readyz`
+- `curl http://127.0.0.1:4173/apps/web/index.html`
+
+3. Прогнать тесты:
+- `npm test`
+
+4. Открыть текущий трек прогресса:
+- перейти к разделу `7` и продолжать с Plan M.
+
+## 4) Зафиксированные архитектурные решения
+
+- `Frontend (TMA)`: только UI + вызовы API.
 - `Backend (VPS)`: authoritative state, бои, матчмейкинг, прогрессия, логи, лидерборд, админ-операции.
 - Транспорт: `HTTPS JSON API`.
 - Reverse proxy: `Nginx`.
-- Process manager: только `systemd` (PM2 не используем).
-- Persistent storage: `SQLite` (первый этап).
-- Идентификация пользователя: Telegram `initData`/`user.id`.
-- Админ-доступ: whitelist Telegram user id из backend-конфига.
-- Демо-профили (`warrior`, `mage`, `cowboy`, `random`) остаются UI-демо и не считаются пользователями лидерборда.
+- Process manager (prod): только `systemd`.
+- Persistence: `SQLite`.
+- Идентификация: Telegram `initData`/`user.id`.
+- Admin доступ: whitelist `telegram user id` в backend конфиге.
+- Демо-профили (`warrior`, `mage`, `cowboy`, `random`) — UI-демо, не пользователи лидерборда.
 
-## 2) План A: Рефакторинг монолитного репозитория
+## 5) Актуальная структура репозитория (canonical)
 
-### A.1 Целевая структура
+### Frontend
 
-- `apps/web` — Telegram Mini App frontend.
-- `apps/backend` — API + игровой цикл + админ-эндпоинты.
-- `packages/core` — общая доменная логика (генерация/стати/правила).
-- `packages/contracts` — DTO и схемы API.
-- `packages/db` — SQLite schema/migrations/repositories.
-- `docs/active` — планы, runbook, чеклисты.
+- `/home/yahor/telegram-miniapp-demo/apps/web/index.html`
+- `/home/yahor/telegram-miniapp-demo/apps/web/styles.css`
+- `/home/yahor/telegram-miniapp-demo/apps/web/app.js`
+- `/home/yahor/telegram-miniapp-demo/apps/web/src/api-client.js`
+- `/home/yahor/telegram-miniapp-demo/apps/web/src/session-api.js`
+- `/home/yahor/telegram-miniapp-demo/apps/web/src/telegram-context.js`
+- `/home/yahor/telegram-miniapp-demo/apps/web/src/character-quotes.js`
 
-### A.2 Этапы рефакторинга
+### Backend
 
-1. Зафиксировать API-контракт v1 и DTO.
-2. Поднять backend skeleton (`/healthz`, `/readyz`) с CORS и `.env`.
-3. Вынести runtime state из UI в backend (сначала in-memory, затем SQLite без смены API).
-4. Перенести боевой цикл/матчмейкинг/прогрессию на backend.
-5. Перевести frontend на `apiClient` и убрать authoritative-вычисления из UI.
-6. Подключить Telegram identity и проверку ролей (`admin`/`user`) на backend.
+- `/home/yahor/telegram-miniapp-demo/apps/backend/server.mjs`
 
-### A.3 Минимальные API v1 (обязательный набор)
+### Shared domain
 
-- `POST /api/session/init`
-- `GET /api/profile/:id`
-- `GET /api/leaderboard`
-- `POST /api/admin/new-user`
-- `POST /api/admin/clear-users`
-- `POST /api/admin/start-battles`
-- `POST /api/admin/stop-battles`
-- `POST /api/admin/finish-game`
-- `POST /api/telemetry/events`
+- `/home/yahor/telegram-miniapp-demo/packages/core/sprite-constructor.js`
+- `/home/yahor/telegram-miniapp-demo/packages/core/battle-engine.mjs`
 
-### A.4 Definition of Done для плана A
+### Persistence
 
-- UI не хранит authoritative state боя.
-- Все административные действия выполняются только через backend.
-- Состояние пользователя и боя восстанавливается после перезапуска backend из SQLite.
-- Доступ к admin-endpoints закрыт для не-админа.
+- `/home/yahor/telegram-miniapp-demo/packages/db/sqlite-store.mjs`
+- `/home/yahor/telegram-miniapp-demo/scripts/db-migrate.mjs`
+- `/home/yahor/telegram-miniapp-demo/data/dev.sqlite` (dev)
 
-## 3) План B: Тестирование client-server взаимодействия
+### Contracts
 
-### B.1 Уровни тестов
+- `/home/yahor/telegram-miniapp-demo/packages/contracts/api-contracts.js`
 
-1. `Contract tests`
-- Проверка соответствия frontend DTO и backend DTO.
-- Проверка кодов ответа и обязательных полей.
+### Важно про корень
 
-2. `Integration tests`
-- `session/init` -> создание/загрузка профиля.
-- `admin/new-user` -> пользователь появляется в leaderboard.
-- `start/stop battles` -> меняется состояние боевого цикла.
-- `finish-game` -> игра фризится и пишется системный лог завершения.
+- `app.js` и `styles.css` в корне удалены.
+- Корневой `index.html` удален (legacy entry отключен полностью).
 
-3. `E2E smoke`
-- Вход через Telegram-контекст (mock `initData` в dev).
-- Открытие профиля, логов, лидерборда.
-- Проверка, что demo-профили видны как UI-страницы, но не как users.
+## 6) Что уже сделано (Plan A)
 
-### B.2 Набор сценариев регрессии (обязательный)
+### A.1/A.3
 
-- Неадмин не может вызвать `admin/*`.
-- При повторном входе тот же Telegram user получает свой сохраненный профиль.
-- После `clear-users` лидерборд пуст.
-- После `finish-game` новые бои не запускаются.
-- Логи приходят по типам (`system`, `combat`, `drop`, `level_up`) без смешивания.
+- Создана целевая структура `apps/*`, `packages/*`.
+- Зафиксирован API контракт v1 (routes + DTO shapes).
 
-### B.3 Definition of Done для плана B
+### A.2/A.4
 
-- Все обязательные интеграционные сценарии проходят.
-- Нет рассинхрона между UI и backend state в smoke-потоке.
-- Ошибки API корректно отображаются в UI (без поломки экрана).
+- Backend поднят и стал authoritative runtime.
+- Перенесены тики/изменения состояния в backend loop.
+- Реализована SQLite persistence и восстановление состояния после рестарта.
 
-## 4) План C: Деплой в Telegram и на VPS
+### A.5
 
-### C.1 Локально перед выкладкой
+- Frontend работает через `apiClient`.
+- Админ-экран без local fallback (если backend недоступен — явная ошибка).
+- Profile selector и user session читают backend read-path (`users`, `session/init`, `profile/:id`).
 
-1. `npm ci`
-2. `npm run db:migrate`
-3. smoke-тест API (`healthz`, `readyz`, `session/init`, `leaderboard`)
-4. smoke UI с Telegram mock-контекстом
+### A.6
 
-### C.2 VPS backend деплой (systemd)
+- Добавлен backend role-check для `admin/*` по Telegram user id.
 
-- Код: `/opt/telegram-miniapp`
+## 7) Трекер прогресса
+
+### Plan A — Рефакторинг и перенос логики
+
+- [x] A.1 структура репозитория
+- [x] A.2 runtime state на backend
+- [x] A.3 API контракт v1
+- [x] A.4 SQLite persistence + restore
+- [x] A.5 frontend read-path через API
+- [x] A.6 backend role-check admin/user
+
+### Plan M — Ручное тестирование и сбор фидбека
+
+- [ ] M.1 Ручной smoke по ролям admin/user
+- [ ] M.2 Фиксация продуктового фидбека в runbook (этот файл)
+- [ ] M.3 Имплементация правок по фидбеку и повторный ручной прогон
+- [ ] M.4 Подтверждение готовности к Plan B
+
+### Plan B — Тестирование client-server
+
+- [x] B.1 Contract tests
+- [x] B.2 Integration tests
+- [x] B.3 E2E smoke
+
+### Plan C — Деплой Telegram + VPS
+
+- [ ] C.0 Подготовить отдельную deploy-ветку и release-конфигурацию без URL-аргументов
+- [ ] C.1 локальный pre-release smoke
+- [ ] C.2 VPS deploy (systemd + nginx)
+- [ ] C.3 Telegram Mini App publish
+- [ ] C.4 rollback procedure validation
+
+## 8) Следующий план действий (что делать дальше)
+
+### Следующий этап: Plan M (до Plan B)
+
+1. Провести ручной role-based smoke и собрать продуктовый фидбек (owner pass).
+2. Зафиксировать и принять как обязательные требования следующие пункты:
+- Обычный пользователь не должен иметь доступ к странице `view=admin`.
+- Для обычного пользователя должна быть одна страница: его профиль (home, без переключения режимов через UI).
+- Единственная страница обычного пользователя: его сгенерированный персонаж.
+- Если по новому `telegram user id` в БД нет профиля, backend генерирует профиль и сохраняет его.
+- При следующей загрузке этот же пользователь получает уже существующий профиль из БД.
+- Генерация персонажа для нового пользователя должна быть эталонно эквивалентна текущему `startapp=random` (цвета и все фичи страницы).
+- Причина: текущая `admin/new-user` генерирует профиль не так, как эталонный `random`-flow, который и задумывался для генерации профилей.
+- Для админа `new user` должен запускать тот же процесс генерации, но с мнимым (служебным) user id, а не с реальным Telegram user id.
+- Лидерборд должен отображать реальное наличие пользователей в БД.
+- Админ может заходить на страницу любого пользователя (как сейчас).
+- У админа должен быть собственный профиль по умолчанию.
+- Только у админа должны отображаться 2 нижние кнопки доступа к админке.
+- У обычного пользователя эти кнопки не должны отображаться, и доступ к admin API также должен быть закрыт.
+3. Проверка по лидерборду (dev, `2026-04-24`): `users` в SQLite = `6`, `/api/users` = `6`, `/api/leaderboard` (`users`) = `6`.
+4. После закрытия Plan M перейти к Plan B:
+- contract tests для API DTO и статусов ответов;
+- integration tests для `session/init`, `admin/new-user`, `start/stop`, `finish-game`, `users`, `profile/:id`;
+- smoke e2e: init session, создание пользователей, start/stop battles, проверка профиля/логов/лидерборда.
+5. Зафиксировать отчет по прохождению Plan B в этом файле и только затем переходить к Plan C.
+
+### Обязательный pre-deploy gate (до C.1)
+
+- Создать отдельную ветку под релиз-деплой (например: `release/deploy-vps`).
+- В deploy-версии убрать передачу и использование runtime-аргументов через URL/query string.
+- Для production-потока не использовать `tgUserId`, `tgUsername`, `view`, `user`, `startapp` как механизм управления сессией/ролями/маршрутами.
+- Идентификацию и роль определять только через Telegram initData + backend session/init (authoritative backend flow).
+
+## 9) Операционные правила (prod)
+
+### Deploy flow
+
+- Директория app: `/opt/telegram-miniapp`
 - Env: `/etc/telegram-miniapp.env`
-- SQLite: `/var/lib/telegram-miniapp/prod.sqlite`
-- Команды релиза:
+- DB: `/var/lib/telegram-miniapp/prod.sqlite`
+- Release:
   1. `git fetch --all --tags`
-  2. `git checkout <tag-or-commit>`
-  3. `npm ci --omit=dev`
-  4. `backup sqlite` (обязательно, см. политику ниже)
-  5. `npm run db:migrate`
-  6. `sudo systemctl restart telegram-miniapp`
-  7. `sudo systemctl status telegram-miniapp`
-  8. `curl /healthz` и `curl /readyz`
+  2. `git checkout release/deploy-vps` (или другой утвержденный deploy-branch)
+  3. Проверить, что в этой ветке отключен URL/query-driven runtime flow (`tgUserId`, `tgUsername`, `view`, `user`, `startapp`).
+  4. `git checkout <tag-or-commit>`
+  5. `npm ci --omit=dev`
+  6. pre-deploy SQLite backup
+  7. `npm run db:migrate`
+  8. `sudo systemctl restart telegram-miniapp`
+  9. `curl /healthz` + `curl /readyz`
 
-### C.3 Telegram Mini App выкладка
-
-1. Собрать frontend с `API_BASE_URL` прод-API.
-2. Разместить frontend на хостинге для TMA (HTTPS).
-3. Обновить URL Mini App у Telegram-бота.
-4. Проверить открытие Mini App в Telegram-клиенте и базовый user-flow.
-
-### C.4 Rollback-флоу (обязательный)
+### Rollback flow
 
 1. `git checkout <previous-stable-tag>`
-2. восстановить SQLite из pre-deploy backup (если миграция/данные сломаны)
+2. restore SQLite from pre-deploy backup (если нужно)
 3. `sudo systemctl restart telegram-miniapp`
-4. проверить `healthz/readyz`
+4. verify `healthz/readyz`
 
-### C.5 Definition of Done для плана C
+### Backup policy (без двусмысленностей)
 
-- Backend стабильно работает под `systemd`.
-- Frontend открывается из Telegram и ходит в прод-API.
-- Rollback воспроизводим и проверен.
+- Регулярный backup: каждые 6 часов.
+- Хранить ровно 2 последних регулярных backup файла.
+- Pre-deploy backup: создавать перед каждым релизом/миграцией.
+- Хранить ровно 1 последний pre-deploy backup.
+- Итого: всегда `2 regular + 1 pre-deploy`.
+- Старые backup файлы удаляются автоматически.
+- Раз в неделю — тест восстановления из свежего regular backup.
 
-## 5) Однозначная политика SQLite backup (без неопределенностей)
+## 10) Ограничения/не входит в эту задачу
 
-Цель: иметь минимум два актуальных файла бэкапа + pre-deploy snapshot.
+- Не добавляем новый спрайт-контент и визуальные изменения сверх API-адаптации.
+- Не меняем балансные формулы как часть миграции архитектуры.
 
-- Регулярные бэкапы: каждые 6 часов.
-- Хранение регулярных бэкапов: ровно `2` последних файла (`rotate-2`).
-- Pre-deploy бэкап: создается перед каждым деплоем/миграцией.
-- Хранение pre-deploy: ровно `1` последний файл (заменяется при следующем релизе).
-- Итого в любой момент: `2` регулярных + `1` pre-deploy.
-- Старые файлы удаляются автоматически скриптом ротации.
-- Раз в неделю выполняется тест восстановления из самого свежего регулярного бэкапа.
+## 11) Риски и долги
 
-## 6) Роли и ограничения доступа
+- `apps/web/app.js` еще крупный, нужна дальнейшая модульная декомпозиция по страницам/UI.
+- Plan B тестовый каркас пока не реализован.
+- End-to-end автоматизация deploy/rollback (`deploy.sh`, `rollback.sh`) не завершена.
+- Полная production-проверка Telegram initData signature еще не закрыта.
 
-- `admin`:
-  - leaderboard,
-  - start/stop battles,
-  - finish game,
-  - new user / clear users,
-  - доступ к predefined профилям в UI.
-- `user`:
-  - вход в игру,
-  - просмотр и использование только своего профиля/прогресса.
-- Проверка ролей только на backend.
+## 12) Контрольная точка
 
-## 7) Что не входит в этот план
+- Snapshot date: `2026-04-24` (Europe/Minsk)
+- Baseline commit before migration block: `2a40e1a`
+- Проверка состояния:
+  - `npm test`
+  - `curl http://127.0.0.1:3001/readyz`
+  - `curl http://127.0.0.1:4173/apps/web/index.html`
 
-- Не добавляем новый контент компонентов/спрайтов.
-- Не меняем формулы баланса в рамках миграции архитектуры.
-- Не расширяем визуальный дизайн сверх адаптации к API/TMA.
+## 13) Отчет Plan B (выполнено)
+
+- Дата фиксации: `2026-04-24`.
+- Добавлены и проходят:
+  - `tests/contract-api.test.mjs` (контракт маршрутов/DTO),
+  - `tests/integration-api.test.mjs` (session/init, admin access, users, profile access, leaderboard display),
+  - `tests/e2e-smoke.test.mjs` (init session, start/stop battles, finish-game, reset-game, live-leaderboard sync).
+- Тестовый backend в изолированной временной SQLite:
+  - `tests/helpers/backend-test-server.mjs`.
+- Результат прогона: `npm test` -> `21 passed, 0 failed`.

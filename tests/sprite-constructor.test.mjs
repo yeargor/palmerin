@@ -14,7 +14,7 @@ import {
   getPresetCombatStats,
   renderPresetToSprite,
   validatePresetOrThrow,
-} from "../src/sprite-constructor.js";
+} from "../packages/core/sprite-constructor.js";
 
 test("preset must have all required slots", () => {
   const invalidPreset = {

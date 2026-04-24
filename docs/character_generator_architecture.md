@@ -4,9 +4,9 @@
 Этот документ описывает текущую архитектуру генератора ASCII-персонажей в UI, правила работы с компонентами и выравниванием, а также практические ограничения, чтобы при дальнейшем развитии не ломать геометрию, высоту и центрирование.
 
 Текущая реализация находится в:
-- `/home/yahor/telegram-miniapp-demo/src/sprite-constructor.js`
-- подключение в UI: `/home/yahor/telegram-miniapp-demo/app.js`
-- визуальная рамка грида: `/home/yahor/telegram-miniapp-demo/styles.css`
+- `/home/yahor/telegram-miniapp-demo/packages/core/sprite-constructor.js`
+- подключение в UI: `/home/yahor/telegram-miniapp-demo/apps/web/app.js`
+- визуальная рамка грида: `/home/yahor/telegram-miniapp-demo/apps/web/styles.css`
 
 Канонические исходники форм/идей:
 - `docs/warrior_sprite.txt`
@@ -160,8 +160,8 @@
 - позицию персонажа внутри красной сетки.
 
 Рабочие URL:
-- `http://127.0.0.1:4173/?startapp=random&debugSprite=1`
-- `http://192.168.100.88:4173/?startapp=random&debugSprite=1`
+- `http://127.0.0.1:4173/apps/web/index.html?startapp=random&debugSprite=1`
+- `http://192.168.100.88:4173/apps/web/index.html?startapp=random&debugSprite=1`
 
 ## 13) Минимальный чеклист перед merge
 - `npm test` зеленый.

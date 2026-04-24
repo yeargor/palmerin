@@ -19,7 +19,7 @@ const report = [];
 
 for (const c of cases) {
   const page = await browser.newPage({ viewport: { width: c.width, height: c.height } });
-  await page.goto('http://127.0.0.1:4173/?startapp=club', { waitUntil: 'networkidle' });
+  await page.goto('http://127.0.0.1:4173/apps/web/index.html?startapp=club', { waitUntil: 'networkidle' });
   await page.waitForTimeout(1600);
 
   const metrics = await page.evaluate(() => {

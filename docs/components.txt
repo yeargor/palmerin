@@ -1,4 +1,4 @@
-components catalog (from src/sprite-constructor.js)
+components catalog (from packages/core/sprite-constructor.js)
 
 slot: hat
 - id: hat_warrior (шлем)
