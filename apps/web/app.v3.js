@@ -552,6 +552,8 @@ let currentSessionUser = null;
 let isCurrentSessionAdmin = false;
 let currentTelegramUserId = null;
 let liveLeaderboardPollTimer = null;
+let adminPagePollTimer = null;
+const ADMIN_PAGE_POLL_INTERVAL_MS = 2000;
 const randomClassAdjectives = [
   "Перегруженный",
   "Фуззовый",
@@ -2144,6 +2146,7 @@ function openUserSession(userId) {
 
 async function renderProfileSelectorPage() {
   clearLiveLeaderboardPolling();
+  clearAdminPagePolling();
   document.body.classList.remove("live-leaderboard-mode");
   detachAdminLayoutResizeSync();
   if (!isCurrentSessionAdmin) {
@@ -2489,6 +2492,23 @@ function clearLiveLeaderboardPolling() {
   }
 }
 
+function clearAdminPagePolling() {
+  if (adminPagePollTimer) {
+    window.clearInterval(adminPagePollTimer);
+    adminPagePollTimer = null;
+  }
+}
+
+function ensureAdminPagePolling() {
+  clearAdminPagePolling();
+  adminPagePollTimer = window.setInterval(() => {
+    if (!isAdminMode() || !isCurrentSessionAdmin || document.visibilityState !== "visible") {
+      return;
+    }
+    void renderAdminPage();
+  }, ADMIN_PAGE_POLL_INTERVAL_MS);
+}
+
 async function hydrateStateFromBackendSessionIfNeeded() {
   if (!Number.isFinite(requestedUserId)) {
     return;
@@ -2586,6 +2606,7 @@ async function renderAdminPage() {
   clearLiveLeaderboardPolling();
   document.body.classList.remove("live-leaderboard-mode");
   if (!isCurrentSessionAdmin) {
+    clearAdminPagePolling();
     openHomePage();
     return;
   }
@@ -2593,6 +2614,7 @@ async function renderAdminPage() {
   if (!appRootEl) {
     return;
   }
+  ensureAdminPagePolling();
 
   let backendState;
   try {
@@ -2835,6 +2857,7 @@ async function renderAdminPage() {
 
 async function renderLiveLeaderboardPage() {
   clearLiveLeaderboardPolling();
+  clearAdminPagePolling();
   detachAdminLayoutResizeSync();
   document.body.classList.add("profile-selector-mode");
   document.body.classList.add("live-leaderboard-mode");
@@ -3750,6 +3773,7 @@ function fitAdminTableToViewport() {
 
 async function renderMainPage() {
   clearLiveLeaderboardPolling();
+  clearAdminPagePolling();
   document.body.classList.remove("live-leaderboard-mode");
   document.body.classList.remove("profile-selector-mode");
   detachAdminLayoutResizeSync();
