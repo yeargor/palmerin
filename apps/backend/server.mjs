@@ -42,7 +42,7 @@ const env = {
     .split(',')
     .map((value) => value.trim())
     .filter(Boolean),
-  battleTickIntervalMs: Number.parseInt(process.env.BATTLE_TICK_INTERVAL_MS || '3500', 10),
+  battleTickIntervalMs: Number.parseInt(process.env.BATTLE_TICK_INTERVAL_MS || '300000', 10),
   systemLogIntervalMs: Number.parseInt(process.env.SYSTEM_LOG_INTERVAL_MS || '2500', 10),
   adminTelegramUserIds: String(process.env.ADMIN_TELEGRAM_USER_IDS || '')
     .split(',')
@@ -323,6 +323,13 @@ function buildPublicGameState() {
       hiddenValues: Boolean(store.gameState.leaderboardDisplay?.hiddenValues),
       revealTopFive: Boolean(store.gameState.leaderboardDisplay?.revealTopFive),
     },
+  };
+}
+
+function buildPublicRuntimeConfig() {
+  return {
+    battleTickIntervalMs: env.battleTickIntervalMs,
+    systemLogIntervalMs: env.systemLogIntervalMs,
   };
 }
 
@@ -785,6 +792,7 @@ const server = http.createServer(async (req, res) => {
             telegramUsername: String(user.telegramUsername || ''),
           })),
           gameState: buildPublicGameState(),
+          config: buildPublicRuntimeConfig(),
           at: nowIso(),
           requestId,
         },
@@ -813,6 +821,7 @@ const server = http.createServer(async (req, res) => {
               telegramUsername: String(user.telegramUsername || ''),
             })),
           gameState: buildPublicGameState(),
+          config: buildPublicRuntimeConfig(),
           at: nowIso(),
           requestId,
         },

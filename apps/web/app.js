@@ -165,7 +165,7 @@ const BATTLE_POWER_K = 1;
 const BATTLE_W_LVL = 0.6;
 const DEFAULT_RUNTIME_CONFIG = Object.freeze({
   systemLogIntervalMs: 2500,
-  battleTickIntervalMs: 3500,
+  battleTickIntervalMs: 300000,
   matchmakingMaxDelta: 1.75,
 });
 const MATCHMAKING_PRIORITY_QUANTILE = 0.25;
@@ -2284,7 +2284,21 @@ async function fetchBackendAdminState(options = {}) {
         leaderboardDisplay: { hiddenValues: false, revealTopFive: false },
       },
     users: Array.isArray(payload.users) ? payload.users : [],
+    config: payload.config && typeof payload.config === "object"
+      ? payload.config
+      : {},
   };
+}
+
+function formatIntervalMinutesFromMs(intervalMs) {
+  const value = Number(intervalMs);
+  if (!Number.isFinite(value) || value <= 0) {
+    return "n/a";
+  }
+  const minutes = value / 60000;
+  const roundedMinutes = Math.round(minutes * 100) / 100;
+  const label = Number.isInteger(roundedMinutes) ? String(roundedMinutes) : String(roundedMinutes);
+  return `${label}m`;
 }
 
 function formatLeaderboardName(entry, userMetaById) {
@@ -2612,6 +2626,7 @@ async function renderAdminPage() {
   };
   const winnerUserId = effectiveGameState.winnerUserId || leaderboard[0]?.userId || null;
   const battlesToggleLabel = effectiveGameState.battlesStarted ? "[pause battles]" : "[start battles]";
+  const battleIntervalLabel = formatIntervalMinutesFromMs(backendState.config?.battleTickIntervalMs);
 
   document.body.classList.add("profile-selector-mode");
   appRootEl.innerHTML = `
@@ -2621,7 +2636,7 @@ async function renderAdminPage() {
         <pre class="admin-table" id="adminTable"></pre>
       </div>
       <div class="admin-bottom">
-        <p class="admin-summary">backend mode: ${effectiveGameState.finished ? "frozen" : "live"} • battles: ${effectiveGameState.battlesStarted ? "on" : "off"} • source: backend</p>
+        <p class="admin-summary">backend mode: ${effectiveGameState.finished ? "frozen" : "live"} • battles: ${effectiveGameState.battlesStarted ? "on" : "off"} • interval: ${battleIntervalLabel} • source: backend</p>
         <p class="admin-note" id="adminNote"></p>
         <div class="admin-actions">
           <button class="admin-btn" id="adminToggleBattlesBtn" type="button"${effectiveGameState.finished || !effectiveGameState.usersCount ? " disabled" : ""}>${battlesToggleLabel}</button>
