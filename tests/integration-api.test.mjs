@@ -3,6 +3,10 @@ import assert from 'node:assert/strict';
 import { API_ROUTES } from '../packages/contracts/api-contracts.js';
 import { requestJson, startBackendTestServer } from './helpers/backend-test-server.mjs';
 
+async function sleep(ms) {
+  await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 test('session init creates user, reuses user, updates telegram username', async (t) => {
   const server = await startBackendTestServer({ adminTelegramUserIds: [5001] });
   t.after(async () => {
@@ -104,3 +108,63 @@ test('profile access: user can only read own profile, admin can read any profile
   assert.equal(adminRead.payload.profile.userId, userB.payload.user.id);
 });
 
+test('admin telemetry last run is stored in game_state and updated by start/stop/finish', async (t) => {
+  const adminId = 5001;
+  const server = await startBackendTestServer({
+    adminTelegramUserIds: [adminId],
+    battleTickIntervalMs: 90,
+  });
+  t.after(async () => {
+    await server.stop();
+  });
+
+  await requestJson(server.baseUrl, API_ROUTES.sessionInit, {
+    method: 'POST',
+    body: { telegramUserId: 7101 },
+  });
+  await requestJson(server.baseUrl, API_ROUTES.sessionInit, {
+    method: 'POST',
+    body: { telegramUserId: 7102 },
+  });
+
+  const start = await requestJson(server.baseUrl, API_ROUTES.adminStartBattles, {
+    method: 'POST',
+    headers: { 'x-telegram-user-id': String(adminId) },
+    body: { telegramUserId: adminId },
+  });
+  assert.equal(start.status, 200);
+  await sleep(220);
+
+  const running = await requestJson(server.baseUrl, API_ROUTES.adminTelemetryLastRun, {
+    headers: { 'x-telegram-user-id': String(adminId) },
+  });
+  assert.equal(running.status, 200);
+  assert.equal(running.payload.telemetryLastRun.status, 'running');
+  assert.ok(Number(running.payload.telemetryLastRun.tickCount) >= 1);
+
+  const stop = await requestJson(server.baseUrl, API_ROUTES.adminStopBattles, {
+    method: 'POST',
+    headers: { 'x-telegram-user-id': String(adminId) },
+    body: { telegramUserId: adminId },
+  });
+  assert.equal(stop.status, 200);
+
+  const paused = await requestJson(server.baseUrl, API_ROUTES.adminTelemetryLastRun, {
+    headers: { 'x-telegram-user-id': String(adminId) },
+  });
+  assert.equal(paused.status, 200);
+  assert.equal(paused.payload.telemetryLastRun.status, 'paused');
+
+  const finish = await requestJson(server.baseUrl, API_ROUTES.adminFinishGame, {
+    method: 'POST',
+    headers: { 'x-telegram-user-id': String(adminId) },
+    body: { telegramUserId: adminId },
+  });
+  assert.equal(finish.status, 200);
+
+  const finished = await requestJson(server.baseUrl, API_ROUTES.adminTelemetryLastRun, {
+    headers: { 'x-telegram-user-id': String(adminId) },
+  });
+  assert.equal(finished.status, 200);
+  assert.equal(finished.payload.telemetryLastRun.status, 'finished');
+});

@@ -31,6 +31,7 @@ const RANDOM_ADJECTIVES = Object.freeze([
   'Безумный', 'Разрывной', 'Оглушительный', 'Кровожадный', 'Эпичный', 'Непробиваемый', 'Грязный', 'Шумный',
 ]);
 const SYSTEM_LOOP_CHECK_MS = 250;
+const MAX_TELEMETRY_TICKS_STORED = 200;
 const DEFAULT_LEADERBOARD_DISPLAY = Object.freeze({
   hiddenValues: false,
   revealTopFive: false,
@@ -92,6 +93,9 @@ if (store.users.length > 0 || storeMutatedByNormalization) {
 if (normalizeGameStateDisplay(store.gameState)) {
   persistStore();
 }
+if (normalizeGameStateTelemetry(store.gameState)) {
+  persistStore();
+}
 
 let serverLoopHandle = null;
 
@@ -126,6 +130,38 @@ function normalizeGameStateDisplay(gameState) {
     changed = true;
   }
   return changed;
+}
+
+function normalizeGameStateTelemetry(gameState) {
+  if (!gameState || typeof gameState !== 'object') {
+    return false;
+  }
+  const candidate = gameState.telemetryLastRun;
+  if (!candidate || typeof candidate !== 'object') {
+    gameState.telemetryLastRun = null;
+    return true;
+  }
+  const sanitized = {
+    runId: Math.max(0, Number(candidate.runId) || 0),
+    status: ['running', 'paused', 'finished'].includes(candidate.status) ? candidate.status : 'paused',
+    startedAt: candidate.startedAt ? String(candidate.startedAt) : null,
+    lastUpdatedAt: candidate.lastUpdatedAt ? String(candidate.lastUpdatedAt) : null,
+    finishedAt: candidate.finishedAt ? String(candidate.finishedAt) : null,
+    winnerUserId: Number.isFinite(Number(candidate.winnerUserId)) ? Number(candidate.winnerUserId) : null,
+    tickCount: Math.max(0, Number(candidate.tickCount) || 0),
+    fightsTotal: Math.max(0, Number(candidate.fightsTotal) || 0),
+    latestTick: candidate.latestTick && typeof candidate.latestTick === 'object' ? candidate.latestTick : null,
+    ticks: Array.isArray(candidate.ticks)
+      ? candidate.ticks.filter((item) => item && typeof item === 'object').slice(-MAX_TELEMETRY_TICKS_STORED)
+      : [],
+  };
+  const before = JSON.stringify(candidate);
+  const after = JSON.stringify(sanitized);
+  if (before !== after) {
+    gameState.telemetryLastRun = sanitized;
+    return true;
+  }
+  return false;
 }
 
 function pickByWeight(weightedItems) {
@@ -308,6 +344,7 @@ function buildPublicProfile(user, { ratingOverride } = {}) {
 
 function buildPublicGameState() {
   normalizeGameStateDisplay(store.gameState);
+  normalizeGameStateTelemetry(store.gameState);
   return {
     finished: store.gameState.finished,
     battlesStarted: store.gameState.battlesStarted,
@@ -317,6 +354,7 @@ function buildPublicGameState() {
       hiddenValues: Boolean(store.gameState.leaderboardDisplay?.hiddenValues),
       revealTopFive: Boolean(store.gameState.leaderboardDisplay?.revealTopFive),
     },
+    telemetryLastRun: store.gameState.telemetryLastRun,
   };
 }
 
@@ -385,6 +423,10 @@ function clearAllUsers() {
   store.gameState.lastBattleTickAt = 0;
   store.gameState.lastSystemLogAt = 0;
   store.gameState.leaderboardDisplay = { ...DEFAULT_LEADERBOARD_DISPLAY };
+  if (store.gameState.telemetryLastRun && store.gameState.telemetryLastRun.status === 'running') {
+    store.gameState.telemetryLastRun.status = 'paused';
+    store.gameState.telemetryLastRun.lastUpdatedAt = nowIso();
+  }
   persistStore();
 }
 
@@ -417,6 +459,10 @@ function resetGameAndRegenerateProfiles() {
   store.gameState.lastBattleTickAt = 0;
   store.gameState.lastSystemLogAt = 0;
   store.gameState.leaderboardDisplay = { ...DEFAULT_LEADERBOARD_DISPLAY };
+  if (store.gameState.telemetryLastRun && store.gameState.telemetryLastRun.status === 'running') {
+    store.gameState.telemetryLastRun.status = 'paused';
+    store.gameState.telemetryLastRun.lastUpdatedAt = nowIso();
+  }
 
   const participants = store.users.filter((item) => item.role !== ROLE.admin);
   const leaderboard = buildLeaderboardEntries(participants);
@@ -428,6 +474,83 @@ function resetGameAndRegenerateProfiles() {
   }
   persistStore();
   return { regeneratedUsers };
+}
+
+function buildTickTelemetrySummary(currentTick, outcome, participantsCount) {
+  const leaderboardTop = Array.isArray(outcome?.leaderboardAfter || outcome?.leaderboard)
+    ? (outcome.leaderboardAfter || outcome.leaderboard).slice(0, 5).map((row) => ({
+      userId: Number(row.userId) || 0,
+      rating: Number(row.rating) || 0,
+      level: Number(row.level) || 0,
+      power: Number(row.power) || 0,
+    }))
+    : [];
+  return {
+    tick: Number(currentTick) || 0,
+    at: nowIso(),
+    participants: Math.max(0, Number(participantsCount) || 0),
+    fights: Math.max(0, Number(outcome?.fights) || 0),
+    pairs: Array.isArray(outcome?.pairs) ? outcome.pairs : [],
+    unmatchedUserIds: Array.isArray(outcome?.unmatchedUserIds) ? outcome.unmatchedUserIds : [],
+    pairing: outcome?.pairing && typeof outcome.pairing === 'object'
+      ? {
+        effectiveMaxDelta: Number(outcome.pairing.effectiveMaxDelta) || 0,
+        forcedPairsCount: Math.max(0, Number(outcome.pairing.forcedPairsCount) || 0),
+        passStats: Array.isArray(outcome.pairing.passStats) ? outcome.pairing.passStats : [],
+      }
+      : null,
+    leaderboardTop,
+  };
+}
+
+function ensureTelemetryRunOnStart() {
+  const runId = Math.max(0, Number(store.gameState.telemetryRunId) || 0);
+  store.gameState.telemetryLastRun = {
+    runId,
+    status: 'running',
+    startedAt: nowIso(),
+    lastUpdatedAt: nowIso(),
+    finishedAt: null,
+    winnerUserId: null,
+    tickCount: 0,
+    fightsTotal: 0,
+    latestTick: null,
+    ticks: [],
+  };
+}
+
+function markTelemetryRunPaused() {
+  const run = store.gameState.telemetryLastRun;
+  if (!run || typeof run !== 'object') {
+    return;
+  }
+  run.status = 'paused';
+  run.lastUpdatedAt = nowIso();
+}
+
+function appendTelemetryTick(tickSummary) {
+  const run = store.gameState.telemetryLastRun;
+  if (!run || typeof run !== 'object') {
+    return;
+  }
+  const ticks = Array.isArray(run.ticks) ? run.ticks : [];
+  ticks.push(tickSummary);
+  run.ticks = ticks.slice(-MAX_TELEMETRY_TICKS_STORED);
+  run.latestTick = tickSummary;
+  run.tickCount = Math.max(0, Number(run.tickCount) || 0) + 1;
+  run.fightsTotal = Math.max(0, Number(run.fightsTotal) || 0) + Math.max(0, Number(tickSummary?.fights) || 0);
+  run.lastUpdatedAt = nowIso();
+}
+
+function markTelemetryRunFinished(winnerUserId) {
+  const run = store.gameState.telemetryLastRun;
+  if (!run || typeof run !== 'object') {
+    return;
+  }
+  run.status = 'finished';
+  run.winnerUserId = Number.isFinite(Number(winnerUserId)) ? Number(winnerUserId) : null;
+  run.finishedAt = nowIso();
+  run.lastUpdatedAt = run.finishedAt;
 }
 
 function getUserById(id) {
@@ -572,10 +695,13 @@ function maybeRunBattleTick(nowMs) {
     return;
   }
   store.gameState.telemetryTickId = Math.max(0, Number(store.gameState.telemetryTickId) || 0) + 1;
+  const currentTick = store.gameState.telemetryTickId;
   const outcome = runBattleTick(participants, {
-    currentTick: store.gameState.telemetryTickId,
+    currentTick,
     matchmakingMaxDelta: env.matchmakingMaxDelta,
   });
+  const tickSummary = buildTickTelemetrySummary(currentTick, outcome, participants.length);
+  appendTelemetryTick(tickSummary);
   store.gameState.lastBattleTickAt = nowMs;
   if (outcome?.leaderboard?.length) {
     store.gameState.frozenLeaderboard = [];
@@ -889,6 +1015,7 @@ const server = http.createServer(async (req, res) => {
       if (!store.gameState.finished) {
         store.gameState.battlesStarted = true;
         store.gameState.telemetryRunId = Math.max(0, Number(store.gameState.telemetryRunId) || 0) + 1;
+        ensureTelemetryRunOnStart();
       }
       persistStore();
       writeJson(
@@ -930,6 +1057,7 @@ const server = http.createServer(async (req, res) => {
       const body = await parseBody(req);
       ensureAdminOrThrow(req, body);
       store.gameState.battlesStarted = false;
+      markTelemetryRunPaused();
       persistStore();
       writeJson(
         res,
@@ -962,6 +1090,7 @@ const server = http.createServer(async (req, res) => {
       store.gameState.battlesStarted = false;
       store.gameState.winnerUserId = winner?.userId || null;
       store.gameState.frozenLeaderboard = leaderboard;
+      markTelemetryRunFinished(store.gameState.winnerUserId);
       persistStore();
       writeJson(
         res,
@@ -970,6 +1099,22 @@ const server = http.createServer(async (req, res) => {
           ok: true,
           finished: store.gameState.finished,
           winnerUserId: store.gameState.winnerUserId,
+          at: nowIso(),
+          requestId,
+        },
+        corsHeaders,
+      );
+      return;
+    }
+
+    if (method === 'GET' && path === API_ROUTES.adminTelemetryLastRun) {
+      ensureAdminOrThrow(req);
+      normalizeGameStateTelemetry(store.gameState);
+      writeJson(
+        res,
+        200,
+        {
+          telemetryLastRun: store.gameState.telemetryLastRun,
           at: nowIso(),
           requestId,
         },

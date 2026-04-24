@@ -70,6 +70,7 @@ export function createSqliteStore({ databaseUrl }) {
       leaderboard_reveal_top_five INTEGER NOT NULL DEFAULT 0,
       telemetry_run_id INTEGER NOT NULL,
       telemetry_tick_id INTEGER NOT NULL,
+      telemetry_last_run_json TEXT NOT NULL DEFAULT '{}',
       last_system_log_at INTEGER NOT NULL,
       last_battle_tick_at INTEGER NOT NULL,
       updated_at TEXT NOT NULL
@@ -94,13 +95,18 @@ export function createSqliteStore({ databaseUrl }) {
   if (!hasLeaderboardRevealTopFive) {
     db.exec('ALTER TABLE game_state ADD COLUMN leaderboard_reveal_top_five INTEGER NOT NULL DEFAULT 0;');
   }
+  const hasTelemetryLastRunJson = gameStateColumns.some((column) => column?.name === 'telemetry_last_run_json');
+  if (!hasTelemetryLastRunJson) {
+    db.exec("ALTER TABLE game_state ADD COLUMN telemetry_last_run_json TEXT NOT NULL DEFAULT '{}';");
+  }
 
   const seedStateStmt = db.prepare(`
     INSERT INTO game_state (
       id, finished, battles_started, winner_user_id, frozen_leaderboard_json,
       leaderboard_hidden_values, leaderboard_reveal_top_five,
-      telemetry_run_id, telemetry_tick_id, last_system_log_at, last_battle_tick_at, updated_at
-    ) VALUES (1, 0, 0, NULL, '[]', 0, 0, 0, 0, 0, 0, ?)
+      telemetry_run_id, telemetry_tick_id, telemetry_last_run_json,
+      last_system_log_at, last_battle_tick_at, updated_at
+    ) VALUES (1, 0, 0, NULL, '[]', 0, 0, 0, 0, '{}', 0, 0, ?)
     ON CONFLICT(id) DO NOTHING;
   `);
   seedStateStmt.run(new Date().toISOString());
@@ -145,7 +151,8 @@ export function createSqliteStore({ databaseUrl }) {
   const selectGameStateStmt = db.prepare(`
     SELECT id, finished, battles_started, winner_user_id, frozen_leaderboard_json,
            leaderboard_hidden_values, leaderboard_reveal_top_five,
-           telemetry_run_id, telemetry_tick_id, last_system_log_at, last_battle_tick_at, updated_at
+           telemetry_run_id, telemetry_tick_id, telemetry_last_run_json,
+           last_system_log_at, last_battle_tick_at, updated_at
     FROM game_state
     WHERE id = 1;
   `);
@@ -160,6 +167,7 @@ export function createSqliteStore({ databaseUrl }) {
       leaderboard_reveal_top_five = @leaderboardRevealTopFive,
       telemetry_run_id = @telemetryRunId,
       telemetry_tick_id = @telemetryTickId,
+      telemetry_last_run_json = @telemetryLastRunJson,
       last_system_log_at = @lastSystemLogAt,
       last_battle_tick_at = @lastBattleTickAt,
       updated_at = @updatedAt
@@ -232,6 +240,7 @@ export function createSqliteStore({ databaseUrl }) {
       },
       telemetryRunId: Math.max(0, Number(row?.telemetry_run_id) || 0),
       telemetryTickId: Math.max(0, Number(row?.telemetry_tick_id) || 0),
+      telemetryLastRun: safeParseJson(row?.telemetry_last_run_json, null),
       lastSystemLogAt: Math.max(0, Number(row?.last_system_log_at) || 0),
       lastBattleTickAt: Math.max(0, Number(row?.last_battle_tick_at) || 0),
       updatedAt: row?.updated_at || new Date().toISOString(),
@@ -248,6 +257,11 @@ export function createSqliteStore({ databaseUrl }) {
       leaderboardRevealTopFive: gameState?.leaderboardDisplay?.revealTopFive ? 1 : 0,
       telemetryRunId: Math.max(0, Number(gameState.telemetryRunId) || 0),
       telemetryTickId: Math.max(0, Number(gameState.telemetryTickId) || 0),
+      telemetryLastRunJson: JSON.stringify(
+        gameState.telemetryLastRun && typeof gameState.telemetryLastRun === 'object'
+          ? gameState.telemetryLastRun
+          : {},
+      ),
       lastSystemLogAt: Math.max(0, Number(gameState.lastSystemLogAt) || 0),
       lastBattleTickAt: Math.max(0, Number(gameState.lastBattleTickAt) || 0),
       updatedAt: new Date().toISOString(),

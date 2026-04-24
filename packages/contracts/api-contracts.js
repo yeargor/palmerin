@@ -13,6 +13,7 @@ export const API_ROUTES = Object.freeze({
   adminFinishGame: '/api/admin/finish-game',
   adminResetGame: '/api/admin/reset-game',
   adminLeaderboardDisplay: '/api/admin/leaderboard-display',
+  adminTelemetryLastRun: '/api/admin/telemetry-last-run',
   telemetryEvents: '/api/telemetry/events',
 });
 

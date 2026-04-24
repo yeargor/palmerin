@@ -17,6 +17,7 @@ test('API routes expose required backend endpoints', () => {
     'adminFinishGame',
     'adminResetGame',
     'adminLeaderboardDisplay',
+    'adminTelemetryLastRun',
     'telemetryEvents',
   ];
 
@@ -62,4 +63,3 @@ test('pickDtoFields keeps only declared fields', () => {
   });
   assert.equal(Object.prototype.hasOwnProperty.call(dto, 'extra'), false);
 });
-
