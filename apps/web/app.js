@@ -2266,12 +2266,25 @@ async function renderProfileSelectorPage() {
 }
 
 async function fetchBackendAdminState(options = {}) {
-  const payload = options.publicAccess
-    ? await apiClient.liveLeaderboard()
-    : await apiClient.leaderboard();
+  let payload;
+  let readyPayload = null;
+  if (options.publicAccess) {
+    payload = await apiClient.liveLeaderboard();
+  } else {
+    [payload, readyPayload] = await Promise.all([
+      apiClient.leaderboard(),
+      apiClient.readyz().catch(() => null),
+    ]);
+  }
   if (!payload || typeof payload !== "object") {
     throw new Error("Invalid backend payload");
   }
+  const payloadConfig = payload.config && typeof payload.config === "object"
+    ? payload.config
+    : {};
+  const readyConfig = readyPayload?.config && typeof readyPayload.config === "object"
+    ? readyPayload.config
+    : {};
   return {
     leaderboard: Array.isArray(payload.leaderboard) ? payload.leaderboard : [],
     gameState: payload.gameState && typeof payload.gameState === "object"
@@ -2284,9 +2297,10 @@ async function fetchBackendAdminState(options = {}) {
         leaderboardDisplay: { hiddenValues: false, revealTopFive: false },
       },
     users: Array.isArray(payload.users) ? payload.users : [],
-    config: payload.config && typeof payload.config === "object"
-      ? payload.config
-      : {},
+    config: {
+      ...payloadConfig,
+      ...readyConfig,
+    },
   };
 }
 
