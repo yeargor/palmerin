@@ -391,18 +391,11 @@ body {
   justify-content: center;
 }
 
-.game-logo {
-  margin: 0 auto;
-  display: inline-block;
-  color: var(--text);
-  font-size: 14px;
-  line-height: 1;
-  white-space: pre;
-  text-align: left;
-  transform-origin: top center;
-  font-family: ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  font-variant-ligatures: none;
-  letter-spacing: 0;
+.game-logo-image {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
 }
 
 .hero-grid {
