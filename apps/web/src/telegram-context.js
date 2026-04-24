@@ -1,12 +1,8 @@
 export function resolveTelegramUserId({ tg, url, localStorageRef }) {
+  void url;
   const fromTelegram = Number(tg?.initDataUnsafe?.user?.id);
   if (Number.isFinite(fromTelegram) && fromTelegram > 0) {
     return fromTelegram;
-  }
-
-  const fromUrl = Number(url.searchParams.get('tgUserId'));
-  if (Number.isFinite(fromUrl) && fromUrl > 0) {
-    return fromUrl;
   }
 
   const fromStorage = Number(localStorageRef?.getItem('miniapp.debugTgUserId'));
@@ -18,14 +14,10 @@ export function resolveTelegramUserId({ tg, url, localStorageRef }) {
 }
 
 export function resolveTelegramUsername({ tg, url, localStorageRef }) {
+  void url;
   const fromTelegram = String(tg?.initDataUnsafe?.user?.username || '').trim();
   if (fromTelegram) {
     return fromTelegram.replace(/^@+/, '');
-  }
-
-  const fromUrl = String(url.searchParams.get('tgUsername') || '').trim();
-  if (fromUrl) {
-    return fromUrl.replace(/^@+/, '');
   }
 
   const fromStorage = String(localStorageRef?.getItem('miniapp.debugTgUsername') || '').trim();

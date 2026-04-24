@@ -39,6 +39,10 @@ void probeBackendConnection(apiClient)
     console.warn("[api] backend probe failed", error instanceof Error ? error.message : error);
   });
 
+const ADMIN_TARGET_USER_STORAGE_KEY = "miniapp.adminTargetUserId";
+const DEBUG_PROFILE_TEMPLATE_STORAGE_KEY = "miniapp.debugStartTemplate";
+const PAGE_ROUTE_MODE = String(window.__PALMERIN_ROUTE__ || "home").trim().toLowerCase();
+
 const profileTemplateByParam = {
   club: {
     id: 42,
@@ -333,13 +337,17 @@ let currentCombatStats = { hp: 1, attack: 1 };
 let battleTelemetryTickId = 0;
 
 function getStartParam() {
-  const url = new URL(window.location.href);
-  const urlParam =
-    url.searchParams.get("startapp") ||
-    url.searchParams.get("start_param") ||
-    url.searchParams.get("profile");
-
-  return tg?.initDataUnsafe?.start_param || urlParam || "club";
+  const fromTelegram = String(tg?.initDataUnsafe?.start_param || "").trim().toLowerCase();
+  if (profileTemplateByParam[fromTelegram]) {
+    return fromTelegram;
+  }
+  const fromStorage = String(window.sessionStorage.getItem(DEBUG_PROFILE_TEMPLATE_STORAGE_KEY) || "")
+    .trim()
+    .toLowerCase();
+  if (profileTemplateByParam[fromStorage]) {
+    return fromStorage;
+  }
+  return "club";
 }
 
 function makeTelemetryId() {
@@ -399,18 +407,15 @@ function nowTime() {
 }
 
 function isProfileSelectorMode() {
-  const url = new URL(window.location.href);
-  return url.searchParams.get("view") === "profiles";
+  return PAGE_ROUTE_MODE === "profiles";
 }
 
 function isAdminMode() {
-  const url = new URL(window.location.href);
-  return url.searchParams.get("view") === "admin";
+  return PAGE_ROUTE_MODE === "admin";
 }
 
 function isLiveLeaderboardMode() {
-  const url = new URL(window.location.href);
-  return url.searchParams.get("view") === "live";
+  return PAGE_ROUTE_MODE === "live";
 }
 
 function templateKeyFromClassId(classId) {
@@ -435,8 +440,7 @@ function getRequiredTelegramUserIdForApi() {
 }
 
 function getRequestedUserId() {
-  const url = new URL(window.location.href);
-  const raw = url.searchParams.get("user");
+  const raw = window.sessionStorage.getItem(ADMIN_TARGET_USER_STORAGE_KEY);
   if (!raw) {
     return null;
   }
@@ -448,19 +452,7 @@ function applyRoleBasedRouteGuards(ownUserId) {
   if (isCurrentSessionAdmin) {
     return;
   }
-  const url = new URL(window.location.href);
-  let changed = false;
-  if (url.searchParams.has("view")) {
-    url.searchParams.delete("view");
-    changed = true;
-  }
-  if (url.searchParams.has("user")) {
-    url.searchParams.delete("user");
-    changed = true;
-  }
-  if (changed) {
-    window.history.replaceState({}, "", url.toString());
-  }
+  window.sessionStorage.setItem(ADMIN_TARGET_USER_STORAGE_KEY, String(ownUserId));
   requestedUserId = ownUserId;
 }
 
@@ -514,11 +506,10 @@ function applyRoleBasedBottomButtons() {
 }
 
 async function initializeSessionContext() {
-  const url = new URL(window.location.href);
   const telegramUserId = getRequiredTelegramUserIdForApi();
   const telegramUsername = resolveTelegramUsername({
     tg,
-    url,
+    url: null,
     localStorageRef: window.localStorage,
   });
   currentTelegramUserId = telegramUserId;
@@ -1792,7 +1783,7 @@ function postBattleTelemetry(event) {
     pageSessionId: telemetryPageSessionId,
     runId,
     tickId,
-    startapp: state.templateKey || "club",
+    templateKey: state.templateKey || "club",
     ...event,
   };
   const payload = JSON.stringify(telemetryEvent);
@@ -2112,48 +2103,29 @@ function openProfileSelectorPage() {
     return;
   }
   detachAdminLayoutResizeSync();
-  const url = new URL(window.location.href);
-  url.searchParams.set("view", "profiles");
-  if (hasActiveRuntimeUser) {
-    url.searchParams.set("user", String(activeUserId));
-  } else {
-    url.searchParams.delete("user");
-  }
-  url.searchParams.set("startapp", state.templateKey || "club");
-  window.location.href = url.toString();
+  window.sessionStorage.setItem(DEBUG_PROFILE_TEMPLATE_STORAGE_KEY, state.templateKey || "club");
+  window.location.href = "./profiles.html";
 }
 
 function openAdminPage() {
   if (!isCurrentSessionAdmin) {
     return;
   }
-  const url = new URL(window.location.href);
-  url.searchParams.set("view", "admin");
-  if (hasActiveRuntimeUser) {
-    url.searchParams.set("user", String(activeUserId));
-  } else {
-    url.searchParams.delete("user");
-  }
-  url.searchParams.set("startapp", state.templateKey || "club");
-  window.location.href = url.toString();
+  window.sessionStorage.setItem(DEBUG_PROFILE_TEMPLATE_STORAGE_KEY, state.templateKey || "club");
+  window.location.href = "./admin.html";
 }
 
 function openProfilePage(profileParam) {
   detachAdminLayoutResizeSync();
   const nextParam = profileTemplateByParam[profileParam] ? profileParam : "club";
-  const url = new URL(window.location.href);
-  url.searchParams.set("startapp", nextParam);
-  url.searchParams.delete("user");
-  url.searchParams.delete("view");
-  window.location.href = url.toString();
+  window.sessionStorage.setItem(DEBUG_PROFILE_TEMPLATE_STORAGE_KEY, nextParam);
+  window.sessionStorage.removeItem(ADMIN_TARGET_USER_STORAGE_KEY);
+  window.location.href = "./index.html";
 }
 
 function openHomePage() {
   detachAdminLayoutResizeSync();
-  const url = new URL(window.location.href);
-  url.searchParams.delete("view");
-  url.searchParams.delete("user");
-  window.location.href = url.toString();
+  window.location.href = "./index.html";
 }
 
 function openUserSession(userId) {
@@ -2165,11 +2137,8 @@ function openUserSession(userId) {
   if (!Number.isFinite(numericUserId) || numericUserId <= 0) {
     return;
   }
-  const url = new URL(window.location.href);
-  url.searchParams.set("user", String(Math.floor(numericUserId)));
-  url.searchParams.set("startapp", "random");
-  url.searchParams.delete("view");
-  window.location.href = url.toString();
+  window.sessionStorage.setItem(ADMIN_TARGET_USER_STORAGE_KEY, String(Math.floor(numericUserId)));
+  window.location.href = "./index.html";
 }
 
 async function renderProfileSelectorPage() {

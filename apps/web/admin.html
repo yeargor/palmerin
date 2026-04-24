@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="miniapp:api-base" content="https://palmerin.ru" />
+    <title>Auto-Battler Mini App Demo</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app" id="appRoot">
+      <section class="hero" id="heroSection">
+        <header class="hero-header">
+          <div class="game-logo-wrap" aria-label="PALMERUN logo">
+            <pre class="game-logo">██████╗  █████╗ ██╗     ███╗   ███╗███████╗    ██████╗ ██╗   ██╗███╗   ██╗
+██╔══██╗██╔══██╗██║     ████╗ ████║██╔════╝    ██╔══██╗██║   ██║████╗  ██║
+██████╔╝███████║██║     ██╔████╔██║█████╗      ██████╔╝██║   ██║██╔██╗ ██║
+██╔═══╝ ██╔══██║██║     ██║╚██╔╝██║██╔══╝      ██╔══██╗██║   ██║██║╚██╗██║
+██║     ██║  ██║███████╗██║ ╚═╝ ██║███████╗    ██║  ██║╚██████╔╝██║ ╚████║
+╚═╝     ╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝╚══════╝    ╚═╝  ╚═╝ ╚═════╝ ╚═╝  ╚═══╝</pre>
+          </div>
+          <h1 id="characterName">...</h1>
+          <p id="characterMeta">loading profile...</p>
+        </header>
+
+        <div class="hero-grid">
+          <div class="equip equip-left">
+            <p class="equip-label">ГОЛОВА</p>
+            <p id="hatSlot">[Пусто]</p>
+            <p class="equip-label">РУКИ</p>
+            <p id="armsSlot">[Пусто]</p>
+          </div>
+
+          <div class="equip-center-spacer" aria-hidden="true"></div>
+
+          <div class="equip equip-right">
+            <p class="equip-label">ТОРС</p>
+            <p id="torsoSlot">[Пусто]</p>
+            <p class="equip-label">НОГИ</p>
+            <p id="legsSlot">[Пусто]</p>
+          </div>
+        </div>
+
+        <div class="stats" id="statsRow"></div>
+      </section>
+
+      <section class="fighter-quote-anchor" aria-live="polite">
+        <div class="fighter-quote" id="fighterQuote"></div>
+      </section>
+
+      <section class="fighter-stage" aria-label="arena stage">
+        <pre class="sprite" aria-label="character sprite"><span class="sprite-main">    /\      
+  ( ·  ·) </span><span class="sprite-sword">/ </span><span class="sprite-main">
+ </span><span class="sprite-shield">&lt;( ^ )&gt;</span><span class="sprite-main">\</span><span class="sprite-sword">/</span><span class="sprite-main">  
+  /|___|\   
+  /_/ \_\   </span></pre>
+        <div class="stage-line" aria-hidden="true"></div>
+      </section>
+
+      <section class="log-wrap" id="logContainer" aria-live="polite">
+        <ul class="log-list" id="logList"></ul>
+      </section>
+
+      <button class="close-ascii-btn" id="closeAsciiBtn" type="button" aria-label="Open profiles">[x]</button>
+      <button class="admin-ascii-btn" id="adminAsciiBtn" type="button" aria-label="Open admin">[#]</button>
+    </main>
+
+    <script>window.__PALMERIN_ROUTE__ = "admin";</script>
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>

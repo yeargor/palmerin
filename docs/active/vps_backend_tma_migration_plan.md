@@ -131,7 +131,7 @@
 
 ### Plan C — Деплой Telegram + VPS
 
-- [ ] C.0 Подготовить отдельную deploy-ветку и release-конфигурацию без URL-аргументов
+- [x] C.0 Подготовить отдельную deploy-ветку и release-конфигурацию без URL-аргументов
 - [ ] C.1 локальный pre-release smoke
 - [ ] C.2 VPS deploy (systemd + nginx)
 - [ ] C.3 Telegram Mini App publish
@@ -169,6 +169,17 @@
 - В deploy-версии убрать передачу и использование runtime-аргументов через URL/query string.
 - Для production-потока не использовать `tgUserId`, `tgUsername`, `view`, `user`, `startapp` как механизм управления сессией/ролями/маршрутами.
 - Идентификацию и роль определять только через Telegram initData + backend session/init (authoritative backend flow).
+
+### Статус pre-deploy gate (`2026-04-24`)
+
+- Создана ветка `release/deploy-vps`.
+- Убран URL/query-driven runtime flow для `tgUserId`, `tgUsername`, `view`, `user`, `startapp` в frontend.
+- Навигация разнесена на отдельные entrypoints без query-аргументов:
+  - `apps/web/index.html` (home),
+  - `apps/web/admin.html`,
+  - `apps/web/profiles.html`,
+  - `apps/web/live.html`.
+- Выбор целевого пользователя админом теперь передается через `sessionStorage`, а не через URL.
 
 ## 9) Операционные правила (prod)
 
