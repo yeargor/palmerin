@@ -2,13 +2,17 @@ export const API_ROUTES = Object.freeze({
   healthz: '/healthz',
   readyz: '/readyz',
   sessionInit: '/api/session/init',
+  users: '/api/users',
   profileById: (id) => `/api/profile/${encodeURIComponent(String(id))}`,
   leaderboard: '/api/leaderboard',
+  liveLeaderboard: '/api/live-leaderboard',
   adminNewUser: '/api/admin/new-user',
   adminClearUsers: '/api/admin/clear-users',
   adminStartBattles: '/api/admin/start-battles',
   adminStopBattles: '/api/admin/stop-battles',
   adminFinishGame: '/api/admin/finish-game',
+  adminResetGame: '/api/admin/reset-game',
+  adminLeaderboardDisplay: '/api/admin/leaderboard-display',
   telemetryEvents: '/api/telemetry/events',
 });
 
