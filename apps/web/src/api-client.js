@@ -1,4 +1,4 @@
-import { API_ROUTES } from '../../../packages/contracts/api-contracts.js';
+import { API_ROUTES } from './api-contracts.js';
 
 const DEFAULT_API_BASE = 'http://127.0.0.1:3001';
 
