@@ -271,17 +271,10 @@ function buildLeaderboard() {
     return store.gameState.frozenLeaderboard.filter((entry) => !adminUserIds.has(Number(entry.userId)));
   }
   const participants = store.users.filter((user) => user.role !== ROLE.admin);
-  const leaderboard = buildLeaderboardEntries(participants);
-  applyRatingsFromLeaderboard(participants, leaderboard);
-  for (const user of store.users) {
-    if (user.role === ROLE.admin) {
-      user.rating = 0;
-    }
-  }
-  return leaderboard;
+  return buildLeaderboardEntries(participants);
 }
 
-function buildPublicUser(user) {
+function buildPublicUser(user, { ratingOverride } = {}) {
   return {
     id: user.id,
     telegramUserId: user.telegramUserId,
@@ -292,17 +285,17 @@ function buildPublicUser(user) {
     name: user.name,
     classId: user.classId,
     level: user.level,
-    rating: user.rating,
+    rating: Number.isFinite(ratingOverride) ? ratingOverride : user.rating,
   };
 }
 
-function buildPublicProfile(user) {
+function buildPublicProfile(user, { ratingOverride } = {}) {
   return {
     id: user.id,
     userId: user.id,
     classId: user.classId,
     level: user.level,
-    rating: user.rating,
+    rating: Number.isFinite(ratingOverride) ? ratingOverride : user.rating,
     hp: user.hp,
     attack: user.attack,
     colorTier: user.colorTier,
@@ -721,12 +714,14 @@ const server = http.createServer(async (req, res) => {
     if (method === 'GET' && path === API_ROUTES.users) {
       ensureAdminOrThrow(req);
       const leaderboard = buildLeaderboard();
-      persistStore();
+      const ratingByUserId = new Map(leaderboard.map((entry) => [Number(entry.userId), Number(entry.rating)]));
       writeJson(
         res,
         200,
         {
-          users: store.users.map((user) => buildPublicUser(user)),
+          users: store.users.map((user) => buildPublicUser(user, {
+            ratingOverride: ratingByUserId.get(Number(user.id)),
+          })),
           leaderboard,
           gameState: buildPublicGameState(),
           at: nowIso(),
@@ -750,20 +745,17 @@ const server = http.createServer(async (req, res) => {
         return;
       }
       const leaderboard = buildLeaderboard();
-      const participants = store.users.filter((item) => item.role !== ROLE.admin);
-      applyRatingsFromLeaderboard(participants, leaderboard);
-      for (const item of store.users) {
-        if (item.role === ROLE.admin) {
-          item.rating = 0;
-        }
-      }
-      persistStore();
+      const ratingByUserId = new Map(leaderboard.map((entry) => [Number(entry.userId), Number(entry.rating)]));
       writeJson(
         res,
         200,
         {
-          profile: buildPublicProfile(user),
-          user: buildPublicUser(user),
+          profile: buildPublicProfile(user, {
+            ratingOverride: ratingByUserId.get(Number(user.id)),
+          }),
+          user: buildPublicUser(user, {
+            ratingOverride: ratingByUserId.get(Number(user.id)),
+          }),
           gameState: buildPublicGameState(),
           at: nowIso(),
           requestId,
@@ -776,7 +768,6 @@ const server = http.createServer(async (req, res) => {
     if (method === 'GET' && path === API_ROUTES.leaderboard) {
       ensureAdminOrThrow(req);
       const leaderboard = buildLeaderboard();
-      persistStore();
       writeJson(
         res,
         200,
@@ -803,7 +794,6 @@ const server = http.createServer(async (req, res) => {
 
     if (method === 'GET' && path === API_ROUTES.liveLeaderboard) {
       const leaderboard = buildLeaderboard();
-      persistStore();
       writeJson(
         res,
         200,
