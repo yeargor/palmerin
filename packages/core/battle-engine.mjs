@@ -11,7 +11,7 @@ import {
 } from './sprite-constructor.js';
 
 const BATTLE_POWER_K = 1;
-const BATTLE_W_LVL = 0.6;
+const BATTLE_W_LVL = 0.55;
 const MATCHMAKING_PRIORITY_QUANTILE = 0.25;
 const MATCHMAKING_STALE_TICKS = 3;
 const MATCHMAKING_RELAX_OFFSETS = Object.freeze([0, 0.4, 0.8]);
@@ -31,14 +31,29 @@ const RANDOM_ADJECTIVES = Object.freeze([
   'Безумный', 'Разрывной', 'Оглушительный', 'Кровожадный', 'Эпичный', 'Непробиваемый', 'Грязный', 'Шумный',
 ]);
 const LEVEL_GAIN_UPSET_THRESHOLD = 0.35;
-const LEVEL_GAIN_BALANCED_THRESHOLD = 0.6;
-const LOSER_STREAK_SHIELD_PER_LOSS = 0.06;
-const LOSER_STREAK_SHIELD_MAX = 0.3;
+const LEVEL_GAIN_BALANCED_THRESHOLD = 0.54;
+const LOSER_STREAK_SHIELD_PER_LOSS = 0.03;
+const LOSER_STREAK_SHIELD_MAX = 0.15;
+const TIME_NORMALIZATION_BASE_MS = 18000;
+const MIN_TIME_SCALE = 0.25;
+const MAX_TIME_SCALE = 1;
 
 export const MAX_STORED_LOGS_PER_USER = 20;
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
+}
+
+function computeTimeScale(battleTickIntervalMs) {
+  const intervalMs = Number(battleTickIntervalMs);
+  if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
+    return 1;
+  }
+  return clamp(intervalMs / TIME_NORMALIZATION_BASE_MS, MIN_TIME_SCALE, MAX_TIME_SCALE);
+}
+
+function scaleChanceByTime(chance, timeScale) {
+  return clamp((Number(chance) || 0) * timeScale, 0, 1);
 }
 
 function drawRandom(rngTrace, label) {
@@ -420,7 +435,7 @@ function getSlotDowngradePool(slot, currentId) {
   return pool.filter((candidateId) => getComponentScore(candidateId) < currentScore);
 }
 
-function tryApplyWinnerDrop(user, powerDelta, rngTrace = null) {
+function tryApplyWinnerDrop(user, powerDelta, rngTrace = null, timeScale = 1) {
   const preset = buildProfilePreset(user);
   const slotsWithUpgrades = COMPONENT_SLOTS
     .map((slot) => ({ slot, upgrades: getSlotUpgradePool(slot, preset[slot]) }))
@@ -449,13 +464,15 @@ function tryApplyWinnerDrop(user, powerDelta, rngTrace = null) {
     };
   }
 
-  const dropChance = clamp(0.28 + (powerDelta * 0.15), 0.2, 0.8);
+  const rawDropChance = clamp(0.26 + (powerDelta * 0.12), 0.1, 0.62);
+  const dropChance = scaleChanceByTime(rawDropChance, timeScale);
   const dropRoll = drawRandom(rngTrace, 'winner.drop.roll');
   if (dropRoll > dropChance) {
     return {
       item: null,
       meta: {
         reason: 'chance_failed',
+        rawDropChance: Number(rawDropChance.toFixed(4)),
         dropChance: Number(dropChance.toFixed(4)),
         dropRoll: Number(dropRoll.toFixed(6)),
         selection: {
@@ -520,6 +537,7 @@ function tryApplyWinnerDrop(user, powerDelta, rngTrace = null) {
     item: { slot: slotEntry.slot, componentId: pickedUpgrade.componentId },
     meta: {
       reason: 'applied',
+      rawDropChance: Number(rawDropChance.toFixed(4)),
       dropChance: Number(dropChance.toFixed(4)),
       dropRoll: Number(dropRoll.toFixed(6)),
       slotPoolSize: slotsWithUpgrades.length,
@@ -542,7 +560,7 @@ function tryApplyWinnerDrop(user, powerDelta, rngTrace = null) {
   };
 }
 
-function tryApplyLoserDowngrade(user, powerDelta, rngTrace = null) {
+function tryApplyLoserDowngrade(user, powerDelta, rngTrace = null, timeScale = 1) {
   const preset = buildProfilePreset(user);
   const slotsWithDowngrades = COMPONENT_SLOTS
     .map((slot) => ({ slot, downgrades: getSlotDowngradePool(slot, preset[slot]) }))
@@ -572,14 +590,19 @@ function tryApplyLoserDowngrade(user, powerDelta, rngTrace = null) {
   }
 
   const loseStreak = Math.max(0, Number(user.loseStreak) || 0);
-  const streakShield = Math.min(LOSER_STREAK_SHIELD_MAX, loseStreak * LOSER_STREAK_SHIELD_PER_LOSS);
-  const downgradeChance = clamp((0.16 + (powerDelta * 0.2)) - streakShield, 0.04, 0.7);
+  const streakShield = Math.min(
+    LOSER_STREAK_SHIELD_MAX,
+    loseStreak * LOSER_STREAK_SHIELD_PER_LOSS * timeScale,
+  );
+  const rawDowngradeChance = clamp((0.24 + (powerDelta * 0.16)) - streakShield, 0.08, 0.72);
+  const downgradeChance = scaleChanceByTime(rawDowngradeChance, timeScale);
   const downgradeRoll = drawRandom(rngTrace, 'loser.downgrade.roll');
   if (downgradeRoll > downgradeChance) {
     return {
       item: null,
       meta: {
         reason: 'chance_failed',
+        rawDowngradeChance: Number(rawDowngradeChance.toFixed(4)),
         downgradeChance: Number(downgradeChance.toFixed(4)),
         downgradeRoll: Number(downgradeRoll.toFixed(6)),
         streakShield: Number(streakShield.toFixed(4)),
@@ -645,6 +668,7 @@ function tryApplyLoserDowngrade(user, powerDelta, rngTrace = null) {
     item: { slot: slotEntry.slot, componentId: pickedDowngrade.componentId },
     meta: {
       reason: 'applied',
+      rawDowngradeChance: Number(rawDowngradeChance.toFixed(4)),
       downgradeChance: Number(downgradeChance.toFixed(4)),
       downgradeRoll: Number(downgradeRoll.toFixed(6)),
       slotPoolSize: slotsWithDowngrades.length,
@@ -678,18 +702,37 @@ function computeWinnerLevelGain(winnerWinProbability) {
   return 0;
 }
 
-function updateUserAfterBattleVictory(winner, powerDelta, winnerWinProbability, rngTrace = null) {
-  const levelGain = computeWinnerLevelGain(winnerWinProbability);
+function applyScaledLevelGain(baseGain, timeScale, rngTrace = null) {
+  const safeGain = Math.max(0, Number(baseGain) || 0);
+  if (safeGain <= 0) {
+    return 0;
+  }
+  if (timeScale >= 1) {
+    return safeGain;
+  }
+  let appliedGain = 0;
+  for (let idx = 0; idx < safeGain; idx += 1) {
+    if (drawRandom(rngTrace, `winner.level.scale.roll_${idx + 1}`) < timeScale) {
+      appliedGain += 1;
+    }
+  }
+  return appliedGain;
+}
+
+function updateUserAfterBattleVictory(winner, powerDelta, winnerWinProbability, timeScale, rngTrace = null) {
+  const baseLevelGain = computeWinnerLevelGain(winnerWinProbability);
+  const levelGain = applyScaledLevelGain(baseLevelGain, timeScale, rngTrace);
   winner.level = Math.max(1, Number(winner.level) || 1) + levelGain;
   winner.winStreak = (Number(winner.winStreak) || 0) + 1;
   winner.loseStreak = 0;
-  const dropResult = tryApplyWinnerDrop(winner, powerDelta, rngTrace);
+  const dropResult = tryApplyWinnerDrop(winner, powerDelta, rngTrace, timeScale);
   const item = dropResult.item;
 
   let colorChanged = false;
   let colorMeta = { reason: 'not_random_template' };
   if (winner.templateKey === 'random') {
-    const upChance = clamp(0.18 + (powerDelta * 0.12), 0.08, 0.55);
+    const rawUpChance = clamp(0.15 + (powerDelta * 0.08), 0.04, 0.42);
+    const upChance = scaleChanceByTime(rawUpChance, timeScale);
     const upRoll = drawRandom(rngTrace, 'winner.color.roll');
     if (upRoll < upChance) {
       const nextTier = stepColorTier(winner.colorTier || DEFAULT_RANDOM_TIER, 1);
@@ -699,6 +742,7 @@ function updateUserAfterBattleVictory(winner, powerDelta, winnerWinProbability, 
         colorChanged = true;
         colorMeta = {
           reason: 'applied',
+          rawUpChance: Number(rawUpChance.toFixed(4)),
           upChance: Number(upChance.toFixed(4)),
           upRoll: Number(upRoll.toFixed(6)),
           nextTier,
@@ -706,6 +750,7 @@ function updateUserAfterBattleVictory(winner, powerDelta, winnerWinProbability, 
       } else {
         colorMeta = {
           reason: 'at_cap',
+          rawUpChance: Number(rawUpChance.toFixed(4)),
           upChance: Number(upChance.toFixed(4)),
           upRoll: Number(upRoll.toFixed(6)),
         };
@@ -713,6 +758,7 @@ function updateUserAfterBattleVictory(winner, powerDelta, winnerWinProbability, 
     } else {
       colorMeta = {
         reason: 'chance_failed',
+        rawUpChance: Number(rawUpChance.toFixed(4)),
         upChance: Number(upChance.toFixed(4)),
         upRoll: Number(upRoll.toFixed(6)),
       };
@@ -722,6 +768,7 @@ function updateUserAfterBattleVictory(winner, powerDelta, winnerWinProbability, 
   return {
     item,
     colorChanged,
+    baseLevelGain,
     levelGain,
     winnerWinProbability: Number(winnerWinProbability.toFixed(4)),
     dropMeta: dropResult.meta,
@@ -729,17 +776,21 @@ function updateUserAfterBattleVictory(winner, powerDelta, winnerWinProbability, 
   };
 }
 
-function updateUserAfterBattleDefeat(loser, powerDelta, loserWinProbability, rngTrace = null) {
+function updateUserAfterBattleDefeat(loser, powerDelta, loserWinProbability, timeScale, rngTrace = null) {
   loser.winStreak = 0;
   loser.loseStreak = (Number(loser.loseStreak) || 0) + 1;
-  const downgradeResult = tryApplyLoserDowngrade(loser, powerDelta, rngTrace);
+  const downgradeResult = tryApplyLoserDowngrade(loser, powerDelta, rngTrace, timeScale);
   const item = downgradeResult.item;
 
   let colorChanged = false;
   let colorMeta = { reason: 'not_random_template' };
   if (loser.templateKey === 'random') {
-    const streakShield = Math.min(LOSER_STREAK_SHIELD_MAX, (Number(loser.loseStreak) || 0) * LOSER_STREAK_SHIELD_PER_LOSS);
-    const downChance = clamp((0.14 + (powerDelta * 0.1)) - streakShield, 0.02, 0.45);
+    const streakShield = Math.min(
+      LOSER_STREAK_SHIELD_MAX,
+      (Number(loser.loseStreak) || 0) * LOSER_STREAK_SHIELD_PER_LOSS * timeScale,
+    );
+    const rawDownChance = clamp((0.21 + (powerDelta * 0.12)) - streakShield, 0.04, 0.46);
+    const downChance = scaleChanceByTime(rawDownChance, timeScale);
     const downRoll = drawRandom(rngTrace, 'loser.color.roll');
     if (downRoll < downChance) {
       const nextTier = stepColorTier(loser.colorTier || DEFAULT_RANDOM_TIER, -1);
@@ -749,6 +800,7 @@ function updateUserAfterBattleDefeat(loser, powerDelta, loserWinProbability, rng
         colorChanged = true;
         colorMeta = {
           reason: 'applied',
+          rawDownChance: Number(rawDownChance.toFixed(4)),
           downChance: Number(downChance.toFixed(4)),
           downRoll: Number(downRoll.toFixed(6)),
           nextTier,
@@ -757,6 +809,7 @@ function updateUserAfterBattleDefeat(loser, powerDelta, loserWinProbability, rng
       } else {
         colorMeta = {
           reason: 'at_floor',
+          rawDownChance: Number(rawDownChance.toFixed(4)),
           downChance: Number(downChance.toFixed(4)),
           downRoll: Number(downRoll.toFixed(6)),
           streakShield: Number(streakShield.toFixed(4)),
@@ -765,6 +818,7 @@ function updateUserAfterBattleDefeat(loser, powerDelta, loserWinProbability, rng
     } else {
       colorMeta = {
         reason: 'chance_failed',
+        rawDownChance: Number(rawDownChance.toFixed(4)),
         downChance: Number(downChance.toFixed(4)),
         downRoll: Number(downRoll.toFixed(6)),
         streakShield: Number(streakShield.toFixed(4)),
@@ -782,7 +836,7 @@ function updateUserAfterBattleDefeat(loser, powerDelta, loserWinProbability, rng
   };
 }
 
-function runBattleForPair(firstEntry, secondEntry, pairingMeta = null) {
+function runBattleForPair(firstEntry, secondEntry, pairingMeta = null, timeScale = 1) {
   const rngTrace = [];
   const firstUser = firstEntry.user;
   const secondUser = secondEntry.user;
@@ -802,8 +856,20 @@ function runBattleForPair(firstEntry, secondEntry, pairingMeta = null) {
   const winnerWinProbability = firstWins ? pFirst : pSecond;
   const loserWinProbability = firstWins ? pSecond : pFirst;
 
-  const winnerUpdates = updateUserAfterBattleVictory(winner.user, powerDelta, winnerWinProbability, rngTrace);
-  const loserUpdates = updateUserAfterBattleDefeat(loser.user, powerDelta, loserWinProbability, rngTrace);
+  const winnerUpdates = updateUserAfterBattleVictory(
+    winner.user,
+    powerDelta,
+    winnerWinProbability,
+    timeScale,
+    rngTrace,
+  );
+  const loserUpdates = updateUserAfterBattleDefeat(
+    loser.user,
+    powerDelta,
+    loserWinProbability,
+    timeScale,
+    rngTrace,
+  );
   return {
     pair: {
       leftUserId: firstUser.id,
@@ -1234,6 +1300,7 @@ export function runBattleTick(users, options = {}) {
   const matchmakingMaxDelta = Number.isFinite(matchmakingMaxDeltaRaw)
     ? matchmakingMaxDeltaRaw
     : DEFAULT_MATCHMAKING_MAX_DELTA;
+  const timeScale = computeTimeScale(options.battleTickIntervalMs);
 
   for (const user of users) {
     ensureUserCombatIdentity(user);
@@ -1251,7 +1318,7 @@ export function runBattleTick(users, options = {}) {
   const matchmakingPool = buildMatchmakingPoolSnapshot(queue, effectiveMaxDelta);
   const battleEvents = [];
   for (const pairing of pairingResult.pairs) {
-    battleEvents.push(runBattleForPair(pairing.left, pairing.right, pairing.meta));
+    battleEvents.push(runBattleForPair(pairing.left, pairing.right, pairing.meta, timeScale));
   }
 
   if (!battleEvents.length) {
@@ -1273,6 +1340,7 @@ export function runBattleTick(users, options = {}) {
       rngTrace: {
         matchmaking: matchmakingRngTrace,
       },
+      timeScale: Number(timeScale.toFixed(4)),
       battles: [],
       leaderboardBefore,
       leaderboard: leaderboardNoFight,
@@ -1362,6 +1430,7 @@ export function runBattleTick(users, options = {}) {
         trace: event.rngTrace || [],
       })),
     },
+    timeScale: Number(timeScale.toFixed(4)),
     battles: battleEvents.map((event) => ({
       pair: event.pair,
       winnerUserId: event.winner.id,

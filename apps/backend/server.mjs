@@ -699,6 +699,7 @@ function maybeRunBattleTick(nowMs) {
   const outcome = runBattleTick(participants, {
     currentTick,
     matchmakingMaxDelta: env.matchmakingMaxDelta,
+    battleTickIntervalMs: env.battleTickIntervalMs,
   });
   const tickSummary = buildTickTelemetrySummary(currentTick, outcome, participants.length);
   appendTelemetryTick(tickSummary);
