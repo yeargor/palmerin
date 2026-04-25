@@ -32,6 +32,10 @@ body {
   height: 100vh;
 }
 
+body.live-leaderboard-mode {
+  overflow: hidden;
+}
+
 .app {
   position: relative;
   height: 100vh;
@@ -367,6 +371,7 @@ body {
 .live-leaderboard-layout {
   flex: 1;
   min-height: 0;
+  overflow: hidden;
   display: grid;
   grid-template-columns: minmax(140px, 1fr) minmax(0, 3fr) minmax(140px, 1fr);
   gap: 16px;
@@ -382,7 +387,7 @@ body {
 }
 
 .live-qr-image {
-  width: min(100%, 300px);
+  width: min(100%, 380px);
   height: auto;
   aspect-ratio: 1 / 1;
   object-fit: contain;
@@ -395,12 +400,13 @@ body {
   padding: 10px;
   min-height: 0;
   border: 0;
+  overflow: hidden !important;
   justify-content: center;
   align-items: flex-start;
 }
 
 .live-admin-table {
-  font-size: clamp(9px, 1.35vw, 18px);
+  font-size: clamp(14px, 1.9vw, 30px);
   line-height: 1.25;
 }
 
@@ -416,7 +422,7 @@ body {
 
 @media (orientation: portrait) {
   .live-admin-table {
-    font-size: clamp(9px, 2.4vw, 13px);
+    font-size: clamp(12px, 3.2vw, 20px);
   }
 }
 
