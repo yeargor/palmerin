@@ -2,33 +2,42 @@ components catalog (from packages/core/sprite-constructor.js)
 
 slot: hat
 - id: hat_warrior (шлем)
-  layer: "/\"
+  layer: "/\\"
 - id: hat_mage (шляпа волшебника)
-  layer: "/\"
-  layer: "__/  \___"
+  layer: "/\\"
+  layer: "__/  \\___"
 - id: hat_cowboy (ковбойская шляпа)
-  layer: "__/--\___"
+  layer: "__/--\\___"
+- id: hat_warrior_crown (корона воина)
+  layer: "✦_✦_✦"
+- id: hat_mage_halo (нимб волшебника)
+  layer: "___+_"
+- id: hat_cowboy_emu_kak_raz (ковбойская шляпа, 2 ряда)
+  layer: "____"
+  layer: "___/____\\_)---)"
 
 slot: face
 - id: face_plain
   layer: "( ·  ·)"
 - id: face_bandana
   layer: ">( ·  ·)"
+- id: face_blessed_eyes
+  layer: "( ✦  ✦)"
 
 slot: arms
 - id: arms_warrior (щит и меч)
   layer: "/"
   layer: "<( ^ )>"
-  layer: "\"
+  layer: "\\"
   layer: "/"
 - id: arms_mage (рубаха)
-  layer: "/   \"
+  layer: "/   \\"
 - id: arms_mage_mantle_top (магическое ожерелье)
   layer: "."
   layer: "."
   layer: "."
   layer: "."
-  layer: "/  o\"
+  layer: "/  o\\"
   layer: "/"
   layer: "."
 - id: arms_cowboy (револьверы)
@@ -39,14 +48,18 @@ slot: arms
 
 slot: torso
 - id: torso_warrior (кираса)
-  layer: "/|___|\"
-- id: torso_mage
-  layer: "/_____\" (мантия)
-- id: torso_mage_mantle_bottom
-  layer: "/__/\_\" (мантия колдуна)
-- id: torso_cowboy
-  layer: "/+++0+\" (ремень охотника)
+  layer: "/|___|\\"
+- id: torso_mage (мантия)
+  layer: "/_____\\"
+- id: torso_mage_mantle_bottom (мантия колдуна)
+  layer: "/__/\\_\\"
+- id: torso_cowboy (ремень охотника)
+  layer: "/+++0+\\"
 
 slot: legs
 - id: legs_boots (ботинки)
-  layer: "/_/ \_\"
+  layer: "/_/ \\_\\"
+- id: legs_cowboy_boots (ковбойские сапоги)
+  layer: "JH |l"
+- id: legs_brass_kneepads (латунные наколенники)
+  layer: "/o/ \\o\\"

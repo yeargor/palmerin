@@ -5,14 +5,14 @@
 
 Текущая реализация находится в:
 - `/home/yahor/telegram-miniapp-demo/packages/core/sprite-constructor.js`
-- подключение в UI: `/home/yahor/telegram-miniapp-demo/apps/web/app.js`
+- подключение в UI: `/home/yahor/telegram-miniapp-demo/apps/web/app.v4.js`
 - визуальная рамка грида: `/home/yahor/telegram-miniapp-demo/apps/web/styles.css`
 
 Канонические исходники форм/идей:
-- `docs/warrior_sprite.txt`
-- `docs/mage_sprite.txt`
-- `docs/cowboy_sprite.txt`
-- `docs/random_sprites.txt`
+- `docs/sprites/warrior_sprite.txt`
+- `docs/sprites/mage_sprite.txt`
+- `docs/sprites/cowboy_sprite.txt`
+- `docs/sprites/random_sprites.txt`
 - `docs/основы_и_элементы.txt`
 
 ## 2) Базовые инварианты
@@ -77,7 +77,7 @@
 
 Это обязательно для:
 - `arms_warrior` (две части меча на разных рядах),
-- `arms_mage` (палочка + звездочки на нескольких рядах),
+- `arms_mage_mantle_top` (палочка + звездочки на нескольких рядах),
 - `hat_mage` (двухрядная шляпа).
 
 Правило:
@@ -160,8 +160,8 @@
 - позицию персонажа внутри красной сетки.
 
 Рабочие URL:
-- `http://127.0.0.1:4173/apps/web/index.html?startapp=random&debugSprite=1`
-- `http://192.168.100.88:4173/apps/web/index.html?startapp=random&debugSprite=1`
+- `http://127.0.0.1:4173/apps/web/index.html?debugSprite=1`
+- `http://192.168.100.88:4173/apps/web/index.html?debugSprite=1`
 
 ## 13) Минимальный чеклист перед merge
 - `npm test` зеленый.

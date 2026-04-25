@@ -306,7 +306,7 @@
 - Центрирование новых элементов сделано по текущему референс-подходу (`anchor.pattern + targetIndexes`) и визуально проверено.
 - Допускается последующий fine-tune `anchor` для ковбойской двухрядной шляпы/сапог после следующего прогона и ручного UX-ревью.
 - `2026-04-25` post-tune:
-  - `face_blessed_eyes`: убран 1 пробел между глазами (`( ✦ ✦)`).
+  - `face_blessed_eyes`: текущая каноническая строка в коде — (`( ✦  ✦)`).
   - `hat_cowboy_emu_kak_raz`: убран 1 верхний левый отступ (top-row сдвинут на 1 символ влево).
   - фиксированные цвета: `hat_cowboy_emu_kak_raz` + `legs_cowboy_boots` -> коричневый (`sprite-leather`), `hat_mage_halo` (+ корона) -> желтый (`sprite-gold`).
   - обновлен мобильный preview: `artifacts/mobile/new-components-preview-430x932.png`.

@@ -10,7 +10,7 @@
             │      open mini app       │                            │                           │                             │                            │              
             │─────────────────────────>│                            │                           │                             │                            │              
             │                          │                            │                           │                             │                            │              
-            │                          │load index.html + app.v3.js │                           │                             │                            │              
+            │                          │load index.html + app.v4.js │                           │                             │                            │              
             │                          │───────────────────────────>│                           │                             │                            │              
             │                          │                            │                           │                             │                            │              
             │                          │                            │  POST /api/session/init   │                             │                            │              

@@ -54,7 +54,7 @@
 
 - `/home/yahor/telegram-miniapp-demo/apps/web/index.html`
 - `/home/yahor/telegram-miniapp-demo/apps/web/styles.css`
-- `/home/yahor/telegram-miniapp-demo/apps/web/app.js`
+- `/home/yahor/telegram-miniapp-demo/apps/web/app.v4.js`
 - `/home/yahor/telegram-miniapp-demo/apps/web/src/api-client.js`
 - `/home/yahor/telegram-miniapp-demo/apps/web/src/session-api.js`
 - `/home/yahor/telegram-miniapp-demo/apps/web/src/telegram-context.js`
@@ -145,12 +145,12 @@
 
 1. Провести ручной role-based smoke и собрать продуктовый фидбек (owner pass).
 2. Зафиксировать и принять как обязательные требования следующие пункты:
-- Обычный пользователь не должен иметь доступ к странице `view=admin`.
+- Обычный пользователь не должен иметь доступ к `admin.html`.
 - Для обычного пользователя должна быть одна страница: его профиль (home, без переключения режимов через UI).
 - Единственная страница обычного пользователя: его сгенерированный персонаж.
 - Если по новому `telegram user id` в БД нет профиля, backend генерирует профиль и сохраняет его.
 - При следующей загрузке этот же пользователь получает уже существующий профиль из БД.
-- Генерация персонажа для нового пользователя должна быть эталонно эквивалентна текущему `startapp=random` (цвета и все фичи страницы).
+- Генерация персонажа для нового пользователя должна быть эквивалентна backend random-flow (цвета и все фичи профиля), без query-driven `startapp`.
 - Причина: текущая `admin/new-user` генерирует профиль не так, как эталонный `random`-flow, который и задумывался для генерации профилей.
 - Для админа `new user` должен запускать тот же процесс генерации, но с мнимым (служебным) user id, а не с реальным Telegram user id.
 - Лидерборд должен отображать реальное наличие пользователей в БД.
@@ -295,9 +295,8 @@
   - `apps/web/admin.html`
   - `apps/web/profiles.html`
   - `apps/web/live.html`
-- Для Pages-совместимости frontend больше не импортирует runtime-модули из `../../packages/*`:
-  - локальные копии: `apps/web/src/sprite-constructor.js`, `apps/web/src/api-contracts.js`.
-- Текущий исполняемый bundle, подключенный в html: `apps/web/app.v2.js` (использовался как cache-bust для Telegram WebView).
+- Для Pages-совместимости теперь используется единый runtime bundle `apps/web/app.v4.js`.
+- Фронт импортирует спрайт-конструктор напрямую из `packages/core/sprite-constructor.js` (один source of truth).
 
 ### 14.4 Что было сломано и как обошли
 
@@ -314,7 +313,8 @@
 
 4. Telegram/WebView кэшировал старый bundle:
 - Симптом: после фиксов в репо в приложении продолжала грузиться старая логика.
-- Решение: временный versioned bundle `app.v2.js` и переключение html на него.
+- Решение (исторически): временный versioned bundle `app.v2.js`.
+- Текущее состояние: активный bundle `app.v4.js`.
 
 5. Xiaomi Redmi (Note 11/12) криво рендерил ASCII-логотип:
 - Симптом: текстовый логотип был визуально сжат/сдвинут.
@@ -338,7 +338,7 @@
 
 - Frontend UI/логика:
   - `apps/web/index.html`, `apps/web/admin.html`, `apps/web/profiles.html`, `apps/web/live.html`
-  - `apps/web/app.v2.js` (актуальный подключенный bundle)
+  - `apps/web/app.v4.js` (актуальный подключенный bundle)
   - `apps/web/styles.css`
   - `apps/web/src/*`
 - Backend API/роль/admin:

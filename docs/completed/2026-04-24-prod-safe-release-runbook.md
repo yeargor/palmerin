@@ -13,7 +13,7 @@
   - создает новый bundle `apps/web/app.vN.js` из `apps/web/app.js`;
   - автоматически переключает `index.html`, `admin.html`, `profiles.html`, `live.html` на новый `app.vN.js`.
 
-Это безопасная замена ручному чередованию `app/app.v2`.
+Это безопасная замена ручному переключению versioned bundle файлов.
 
 ## 2) Что выполнить вам на VPS (строго по шагам)
 
@@ -50,7 +50,7 @@ sudo sqlite3 "$BACKUP_DIR/predeploy-$TS.sqlite" "PRAGMA integrity_check;"
 
 ```bash
 sudo sqlite3 "$DB_PATH" "select count(*) as users from users;"
-sudo sqlite3 "$DB_PATH" "select count(*) as characters from characters;"
+sudo sqlite3 "$DB_PATH" "select count(*) as game_state_rows from game_state;"
 ```
 
 ### 2.2 Обновить backend без потери данных
@@ -108,7 +108,7 @@ npm run web:bump-bundle
 
 ```bash
 sudo sqlite3 "$DB_PATH" "select count(*) as users from users;"
-sudo sqlite3 "$DB_PATH" "select count(*) as characters from characters;"
+sudo sqlite3 "$DB_PATH" "select count(*) as game_state_rows from game_state;"
 ```
 
 Должно быть не меньше значений до релиза.
@@ -117,7 +117,7 @@ sudo sqlite3 "$DB_PATH" "select count(*) as characters from characters;"
 
 ```bash
 curl -fsS https://palmerin.ru/api/leaderboard | head -c 500
-curl -fsS https://palmerin.ru/api/system/config | head -c 500
+curl -fsS https://palmerin.ru/readyz | head -c 500
 ```
 
 3. Проверить логи сервиса (5-10 минут):

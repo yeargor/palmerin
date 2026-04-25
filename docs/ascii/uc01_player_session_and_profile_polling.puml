@@ -9,7 +9,7 @@ participant "Runtime Store" as STORE
 database "SQLite" as DB
 
 U -> TG : open mini app
-TG -> WEB : load index.html + app.v3.js
+TG -> WEB : load index.html + app.v4.js
 
 WEB -> API : POST /api/session/init
 API -> STORE : getOrCreateUserForTelegram()

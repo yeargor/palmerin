@@ -122,8 +122,8 @@ export const componentById = {
     id: "hat_cowboy_emu_kak_raz",
     slot: "hat",
     layers: [
-      makeLayer(0, 5, "____", "sprite-leather"),
-      makeLayer(1, 1, "___/____\\_)---)", "sprite-leather"),
+      makeLayer(0, 4, "____", "sprite-leather"),
+      makeLayer(1, 0, "___/____\\_)---)", "sprite-leather"),
     ],
     effects: [{ type: "shift-slot-anchors", slots: ["face", "arms", "torso", "legs"], dy: 1 }],
     anchor: { pattern: "___/____\\_)---)", targetIndexes: [4, 6] },
@@ -261,8 +261,8 @@ export const componentById = {
   legs_cowboy_boots: new SpriteComponent({
     id: "legs_cowboy_boots",
     slot: "legs",
-    layers: [makeLayer(0, 3, "JH |l", "sprite-leather")],
-    anchor: { pattern: "JH |l", targetIndexes: [2, 2] },
+    layers: [makeLayer(0, 3, "JH Hl", "sprite-leather")],
+    anchor: { pattern: "JH Hl", targetIndexes: [2, 2] },
     stats: { hp: 1, attack: 0 },
     weight: 6,
   }),

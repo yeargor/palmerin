@@ -1,278 +1,81 @@
 # Telemetry Framework
 
-Этот документ описывает текущий telemetry-фреймворк для боевого режима: что пишется, где хранится, как запускать, чистить и анализировать.
+Документ описывает два актуальных telemetry-контура и как ими пользоваться без путаницы:
+- Frontend JSONL telemetry (локальный инструмент, `serve-with-logs`),
+- Backend authoritative telemetry (production/dev API + SQLite `telemetryLastRun`).
 
-## 1. Цель
+## 1. Что считать источником истины
 
-Telemetry нужен для:
-- анализа баланса (winrate, snowball, камбэк);
-- анализа матчмейкинга (кто и почему попал/не попал в бой);
-- анализа эволюции профилей/компонентов по времени;
-- воспроизведения редких кейсов через RNG trace.
+Для анализа реального боевого цикла backend источником истины является:
+- `GET /api/admin/telemetry-last-run`
+- поле `telemetryLastRun` в `game_state` (SQLite)
 
-## 2. Где лежат логи
+Frontend JSONL (`artifacts/battle/battle-events.jsonl`) — вспомогательный локальный канал для UI/отладки.
 
-Основной файл:
+## 2. Backend telemetry (authoritative)
+
+### 2.1 Где хранится
+- SQLite: таблица `game_state`, поле `telemetry_last_run_json`
+- Нормализованное поле runtime: `gameState.telemetryLastRun`
+
+### 2.2 API
+- `GET /api/admin/telemetry-last-run` (admin only)
+- `POST /api/telemetry/events` (принимает payload, но authoritative battle telemetry не зависит от него)
+
+### 2.3 Что внутри `telemetryLastRun`
+- `runId`, `status` (`running|paused|finished`)
+- `startedAt`, `lastUpdatedAt`, `finishedAt`
+- `winnerUserId`
+- `tickCount`, `fightsTotal`
+- `latestTick`
+- `ticks[]` (хвост последних тиков)
+
+### 2.4 Быстрый доступ
+```bash
+curl -fsS http://127.0.0.1:3001/api/admin/telemetry-last-run \
+  -H 'X-Telegram-User-Id: <ADMIN_TG_ID>'
+```
+
+## 3. Frontend JSONL telemetry (локальный)
+
+Этот режим жив только при запуске локального статического сервера:
+- `npm run serve:logs`
+
+### 3.1 Endpoint'ы локального сервера
+- `POST /__telemetry/battle`
+- `GET /__telemetry/battle-log`
+
+### 3.2 Файл
 - `artifacts/battle/battle-events.jsonl`
 
-Формат:
-- JSONL (один JSON-объект на строку).
-- Каждая строка = одно событие телеметрии.
-
-## 3. Как запустить сервер с логированием
-
-Нужен именно Node-сервер с telemetry endpoint.
-
-Команда:
-```bash
-npm run serve:logs
-```
-
-Скрипт:
-- `scripts/serve-with-logs.mjs`
-
-Endpoint'ы:
-- `POST /__telemetry/battle` — запись события в лог-файл.
-- `GET /__telemetry/battle-log` — чтение текущего лог-файла.
-
-Важно:
-- `python -m http.server` не пишет telemetry в файл.
-
-## 4. Версионирование и контекст
-
-Каждое событие содержит:
-- `schemaVersion` — версия схемы telemetry (глобальная совместимость).
-- `eventVersion` — версия структуры конкретного event payload.
-- `sessionId` — стабильный ID браузерной telemetry-сессии (persist в localStorage).
-- `pageSessionId` — ID текущей вкладки/загрузки страницы.
-- `runId` — ID запуска боёв (увеличивается при нажатии `[start battles]`).
-- `tickId` — номер боевого тика (монотонный в рамках run, сохраняется в runtime store).
-- `startapp` — активный стартовый профиль из URL-контекста.
-- `receivedAt` — время, когда сервер получил событие.
-- `ts` — клиентское время формирования события.
-
-## 5. Типы событий
-
-### 5.1 `battle_tick`
-
-Пишется на каждом боевом тике, даже если ни одна пара не прошла фильтр.
-
-Ключевые поля:
-- `config`
-  - `systemLogIntervalMs`
-  - `battleTickIntervalMs`
-  - `matchmakingMaxDelta`
-
-- `matchmaking`
-  - `queue[]`: порядок после shuffle + сортировки по `mmScore`.
-  - `decisions[]`: решения по соседним парам:
-    - `accepted`
-    - `rejected` + `reason` (`delta_exceeded`/`already_paired`)
-  - `pairs[]`: реально сыгранные пары (с вероятностями и `powerDelta`).
-  - `unmatchedUserIds[]`: кто остался без пары в тике.
-  - `pool[]`: "why-not" снимок кандидатов для каждого игрока:
-    - `candidates[]` с `delta` и `withinDelta`.
-
-- `rngTrace`
-  - `matchmaking[]`: random rolls shuffle + jitter.
-  - `battles[]`: random rolls по каждой сыгранной паре (исход, дроп, цвет и т.д.).
-
-- `battles[]`
-  - `pair`: техническая инфа пары (`left/right`, `mmScore`, win probabilities).
-  - `winnerUserId`, `loserUserId`, `powerDelta`.
-  - `winnerUpdates`, `loserUpdates`:
-    - изменения предметов,
-    - изменение цвета,
-    - служебные мета-поля (chance/roll/reason).
-  - `winnerBefore`, `loserBefore`: честный снимок ДО мутаций в этой конкретной паре.
-  - `winnerAfter`, `loserAfter`: снимок ПОСЛЕ применения изменений.
-  - `winnerDiff`, `loserDiff`: вычисленный diff между before/after:
-    - `fields` (level, rating, classId, colorTier, adjective, stats.*)
-    - `componentChanges` (изменения по слотам).
-
-- `leaderboardBefore[]`, `leaderboardAfter[]`
-  - состояние рангов и power до/после тика.
-
-### 5.2 `game_finished`
-
-Пишется при нажатии `[finish game]`.
-
-Поля:
-- `winnerUserId`
-- `winnerName`
-- `leaderboard[]` (замороженный финальный)
-
-## 6. Что входит в снимок игрока
-
-`winnerBefore/After`, `loserBefore/After` и другие snapshot-поля используют структуру:
-- `userId`, `name`
-- `templateKey`, `classId`
-- `level`, `rating`
-- `colorTier`, `adjective`
-- `stats`:
-  - `hp`, `attack`, `power`
-- `preset`:
-  - выбранные component id по слотам
-- `components[]`:
-  - `slot`, `id`, `baseClass`, `stats.{hp,attack}`
-
-## 7. Как чистить логи
-
-Очистить telemetry-файл:
+### 3.3 Очистка/чтение
 ```bash
 : > artifacts/battle/battle-events.jsonl
-```
-
-Удалить файл целиком:
-```bash
-rm -f artifacts/battle/battle-events.jsonl
-```
-
-Создать заново пустой:
-```bash
-mkdir -p artifacts/battle && : > artifacts/battle/battle-events.jsonl
-```
-
-## 8. Как быстро искать в логах
-
-Количество событий:
-```bash
 wc -l artifacts/battle/battle-events.jsonl
-```
-
-Последние события:
-```bash
 tail -n 5 artifacts/battle/battle-events.jsonl
 ```
 
-Только завершения игры:
-```bash
-rg '"type":"game_finished"' artifacts/battle/battle-events.jsonl
-```
+Важно:
+- `python -m http.server` не умеет эти endpoint'ы и не пишет telemetry-файл.
+- JSONL режим не заменяет backend telemetry.
 
-Тики без боёв:
-```bash
-rg '"pairs":\[\],"decisions"' artifacts/battle/battle-events.jsonl
-```
+## 4. Рекомендуемый workflow анализа баланса
 
-## 9. Как делать анализ (базовый workflow)
+1. Поднять backend (`npm run backend:dev`) и web (`npm run web:dev` или `npm run serve:logs`).
+2. Создать пользователей/запустить бой через админку (`/apps/web/admin.html`).
+3. Снять authoritative telemetry:
+   - `GET /api/admin/telemetry-last-run`
+4. При необходимости дополнить отладкой JSONL (если web запущен через `serve-with-logs`).
 
-1. Очистить лог-файл.
-2. Запустить `npm run serve:logs`.
-3. В UI создать пользователей, включить бои, дождаться нужного объёма данных.
-4. Зафиксировать конец прогона (`finish game` при необходимости).
-5. Анализировать `battle-events.jsonl`:
-   - распределение participation по игрокам;
-   - winrate по фазам (ранняя/средняя/поздняя);
-   - drift power/level/hp/attack;
-   - match quality (`delta`, `winProbability`);
-   - частоту апсетов;
-   - item/color transitions;
-   - вклад RNG (через `rngTrace`).
+## 5. Симуляции
 
-## 10. Что важно помнить
-
-- Telemetry best-effort: ошибки POST не должны ломать игровой цикл.
-- Для чистого анализа не смешивайте разные прогоны в одном файле без фильтра по `runId`.
-- `runId` увеличивается при старте битв (`[start battles]`), `tickId` хранится в runtime store и не сбрасывается случайным reload.
-- Если сервер переключён на `python http.server`, telemetry файл не пополняется.
-
-
-## 11. Режим симуляции (автоматический прогон)
-
-Добавлен скрипт симуляции, чтобы не кликать UI вручную в каждом прогоне.
-
-Скрипт:
+Основной скрипт:
 - `scripts/simulate-battle-run.mjs`
 
-Что делает скрипт:
-1. Очищает `artifacts/battle/battle-events.jsonl`.
-2. Открывает админку (`/apps/web/index.html?view=admin&startapp=random`).
-3. Нажимает `[clear users]` (если доступно).
-4. Создаёт заданное количество пользователей (`[new user]`).
-5. Запускает битвы (`[start battles]`).
-6. Открывает сессию первого пользователя (боевой цикл тикает в `viewprofile`, а не в admin view).
-7. Ждёт заданное время.
-8. Возвращается в админку и завершает игру (`[finish game]`) для фиксации финального состояния.
-9. По умолчанию выполняет post-run cleanup (`[clear users]`), чтобы не смешивать прогоны.
-
-Правило cleanup:
-- Очистка пользователей после симуляции должна быть включена по умолчанию.
-- Отключать cleanup допускается только при явной задаче сохранить пользователей после прогона.
-
-### 11.1 Smoke-проверка
-
-Быстрый smoke-test (короткий прогон, минимум времени):
+Запуски:
 ```bash
 npm run simulate:battle:smoke
-```
-
-Параметры smoke по умолчанию:
-- `users=3`
-- `duration_ms=8000`
-
-### 11.2 Полный симуляционный прогон
-
-Базовый запуск:
-```bash
 npm run simulate:battle
 ```
 
-Кастомные параметры:
-```bash
-node scripts/simulate-battle-run.mjs --users 8 --duration-ms 120000
-node scripts/simulate-battle-run.mjs --users 20 --duration-ms 180000
-```
-
-Дополнительно:
-- `--base-url http://127.0.0.1:4173`
-- `--headed` (запуск браузера с UI)
-- `--no-cleanup-after` (оставить пользователей после прогона; использовать только при явном запросе)
-
-## 12. Автоанализ telemetry-файла
-
-Скрипт:
-- `scripts/analyze-telemetry.mjs`
-
-Запуск:
-```bash
-npm run analyze:telemetry
-```
-
-Что выводит:
-- количество событий/tick'ов;
-- число завершений игры;
-- суммарное число боёв;
-- fights/wins/winrate по каждому пользователю;
-- финальный лидерборд.
-- Важно для deep-dive скриптов: `userId` в telemetry числовой; сортировку ID делать как numeric (`a.id - b.id`), не строковым `localeCompare`.
-
-## 13. Рекомендуемый воспроизводимый флоу
-
-1. Поднять сервер с логированием:
-```bash
-npm run serve:logs
-```
-
-2. Запустить короткий smoke:
-```bash
-npm run simulate:battle:smoke
-```
-
-3. Проверить, что telemetry собирается:
-```bash
-wc -l artifacts/battle/battle-events.jsonl
-tail -n 3 artifacts/battle/battle-events.jsonl
-```
-
-4. Запустить полноценный прогон (когда нужно):
-```bash
-node scripts/simulate-battle-run.mjs --users 8 --duration-ms 120000
-```
-
-5. Снять summary:
-```bash
-npm run analyze:telemetry
-```
-
-6. При необходимости повторить на 10/20/30/100 игроках, сравнивая отчёты.
+После прогона анализировать в первую очередь backend-метрики (`telemetryLastRun`), а JSONL использовать как дополнительный след событий UI.

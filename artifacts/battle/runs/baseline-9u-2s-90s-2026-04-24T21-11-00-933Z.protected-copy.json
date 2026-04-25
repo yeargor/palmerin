@@ -1,0 +1,4662 @@
+{
+  "scenario": {
+    "users": 9,
+    "tickMs": 2000,
+    "durationMs": 90000
+  },
+  "participantIds": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+  ],
+  "start": {
+    "summary": {
+      "count": 9,
+      "levels": {
+        "min": 1,
+        "max": 1,
+        "avg": 1,
+        "spread": 0
+      },
+      "colors": {
+        "rare": 2,
+        "seraph": 7
+      },
+      "topTierShare": 0
+    },
+    "profiles": [
+      {
+        "id": 1,
+        "userId": 1,
+        "classId": "cowboy",
+        "level": 1,
+        "rating": 8,
+        "hp": 5,
+        "attack": 6,
+        "colorTier": "rare",
+        "adjective": "Фьюжн",
+        "components": {
+          "hat": "hat_cowboy",
+          "face": "face_bandana",
+          "arms": "arms_mage",
+          "torso": "torso_cowboy",
+          "legs": "legs_boots"
+        },
+        "logs": []
+      },
+      {
+        "id": 2,
+        "userId": 2,
+        "classId": "cowboy",
+        "level": 1,
+        "rating": 5,
+        "hp": 6,
+        "attack": 7,
+        "colorTier": "seraph",
+        "adjective": "Кумбийский",
+        "components": {
+          "hat": "hat_cowboy",
+          "face": "face_bandana",
+          "arms": "arms_warrior",
+          "torso": "torso_mage_mantle_bottom",
+          "legs": "legs_boots"
+        },
+        "logs": []
+      },
+      {
+        "id": 3,
+        "userId": 3,
+        "classId": "mage",
+        "level": 1,
+        "rating": 6,
+        "hp": 6,
+        "attack": 7,
+        "colorTier": "seraph",
+        "adjective": "Блэк-мет",
+        "components": {
+          "hat": "hat_mage",
+          "face": "face_plain",
+          "arms": "arms_warrior",
+          "torso": "torso_mage_mantle_bottom",
+          "legs": "legs_boots"
+        },
+        "logs": []
+      },
+      {
+        "id": 4,
+        "userId": 4,
+        "classId": "warrior",
+        "level": 1,
+        "rating": 9,
+        "hp": 6,
+        "attack": 6,
+        "colorTier": "seraph",
+        "adjective": "Отбитый",
+        "components": {
+          "hat": "hat_warrior",
+          "face": "face_bandana",
+          "arms": "arms_warrior",
+          "torso": "torso_cowboy",
+          "legs": "legs_boots"
+        },
+        "logs": []
+      },
+      {
+        "id": 5,
+        "userId": 5,
+        "classId": "mage",
+        "level": 1,
+        "rating": 2,
+        "hp": 5,
+        "attack": 9,
+        "colorTier": "seraph",
+        "adjective": "Гаражный",
+        "components": {
+          "hat": "hat_mage",
+          "face": "face_plain",
+          "arms": "arms_cowboy",
+          "torso": "torso_mage_mantle_bottom",
+          "legs": "legs_boots"
+        },
+        "logs": []
+      },
+      {
+        "id": 6,
+        "userId": 6,
+        "classId": "cowboy",
+        "level": 1,
+        "rating": 1,
+        "hp": 4,
+        "attack": 9,
+        "colorTier": "rare",
+        "adjective": "Фланжерный",
+        "components": {
+          "hat": "hat_cowboy",
+          "face": "face_bandana",
+          "arms": "arms_cowboy",
+          "torso": "torso_cowboy",
+          "legs": "legs_boots"
+        },
+        "logs": []
+      },
+      {
+        "id": 7,
+        "userId": 7,
+        "classId": "cowboy",
+        "level": 1,
+        "rating": 4,
+        "hp": 6,
+        "attack": 8,
+        "colorTier": "seraph",
+        "adjective": "Подвальный",
+        "components": {
+          "hat": "hat_mage",
+          "face": "face_bandana",
+          "arms": "arms_cowboy",
+          "torso": "torso_warrior",
+          "legs": "legs_boots"
+        },
+        "logs": []
+      },
+      {
+        "id": 8,
+        "userId": 8,
+        "classId": "cowboy",
+        "level": 1,
+        "rating": 3,
+        "hp": 5,
+        "attack": 9,
+        "colorTier": "seraph",
+        "adjective": "Хип-хоп",
+        "components": {
+          "hat": "hat_cowboy",
+          "face": "face_plain",
+          "arms": "arms_cowboy",
+          "torso": "torso_mage_mantle_bottom",
+          "legs": "legs_boots"
+        },
+        "logs": []
+      },
+      {
+        "id": 9,
+        "userId": 9,
+        "classId": "mage",
+        "level": 1,
+        "rating": 7,
+        "hp": 6,
+        "attack": 7,
+        "colorTier": "seraph",
+        "adjective": "Кумбийский",
+        "components": {
+          "hat": "hat_cowboy",
+          "face": "face_plain",
+          "arms": "arms_mage_mantle_top",
+          "torso": "torso_mage",
+          "legs": "legs_boots"
+        },
+        "logs": []
+      }
+    ]
+  },
+  "end": {
+    "summary": {
+      "count": 9,
+      "levels": {
+        "min": 12,
+        "max": 18,
+        "avg": 15,
+        "spread": 6
+      },
+      "colors": {
+        "palmerin": 5,
+        "reggae": 3,
+        "seraph": 1
+      },
+      "topTierShare": 0.8889
+    },
+    "profiles": [
+      {
+        "id": 1,
+        "userId": 1,
+        "classId": "cowboy",
+        "level": 16,
+        "rating": 4,
+        "hp": 5,
+        "attack": 9,
+        "colorTier": "reggae",
+        "adjective": "Регги",
+        "components": {
+          "hat": "hat_cowboy",
+          "face": "face_bandana",
+          "arms": "arms_cowboy",
+          "torso": "torso_mage",
+          "legs": "legs_boots"
+        },
+        "logs": [
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "arena sync"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Порвал майку"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 12"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Вызвал на бис"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 14"
+          },
+          {
+            "time": "00:10",
+            "type": "drop",
+            "text": "дроп: улучшен слот arms"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Поймал палочку"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 15"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "signal stable"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Сыграл на бис"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 16"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Уронил гитару"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Завалил кардан"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Споткнулся о провод"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "signal stable"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Уснул на колонке"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "userId": 2,
+        "classId": "cowboy",
+        "level": 12,
+        "rating": 8,
+        "hp": 6,
+        "attack": 8,
+        "colorTier": "palmerin",
+        "adjective": "Палмерин",
+        "components": {
+          "hat": "hat_cowboy",
+          "face": "face_bandana",
+          "arms": "arms_cowboy",
+          "torso": "torso_warrior",
+          "legs": "legs_boots"
+        },
+        "logs": [
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Разнёс гримёрку"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 10"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Сломал очки"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Залез на колонку"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 11"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "arena sync"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Уснул на колонке"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Оглушило фидбэком"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "signal stable"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Потерял медиатор"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Забрал последний шот"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Пережил жесткий слэм"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 12"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Перепутал аккорды"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "signal stable"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "userId": 3,
+        "classId": "mage",
+        "level": 15,
+        "rating": 5,
+        "hp": 6,
+        "attack": 8,
+        "colorTier": "palmerin",
+        "adjective": "Палмерин",
+        "components": {
+          "hat": "hat_mage",
+          "face": "face_plain",
+          "arms": "arms_cowboy",
+          "torso": "torso_warrior",
+          "legs": "legs_boots"
+        },
+        "logs": [
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Прыгнул в толпу"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Ошибся в припеве"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "arena sync"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Забрал микрофон"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 14"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Залил пульт пивом"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Оглушило монитором"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "signal stable"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Попал в ритм"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 15"
+          },
+          {
+            "time": "00:10",
+            "type": "drop",
+            "text": "дроп: улучшен слот arms"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Наступил в лужу"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Поймал медиатор"
+          },
+          {
+            "time": "00:10",
+            "type": "drop",
+            "text": "дроп: улучшен слот torso"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "signal stable"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Сыграл на бис"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "userId": 4,
+        "classId": "cowboy",
+        "level": 14,
+        "rating": 6,
+        "hp": 6,
+        "attack": 8,
+        "colorTier": "palmerin",
+        "adjective": "Палмерин",
+        "components": {
+          "hat": "hat_warrior",
+          "face": "face_bandana",
+          "arms": "arms_cowboy",
+          "torso": "torso_mage",
+          "legs": "legs_boots"
+        },
+        "logs": [
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Разбудил соседей"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 13"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "arena sync"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Порвалась струна"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Упал в слэме"
+          },
+          {
+            "time": "00:10",
+            "type": "drop",
+            "text": "потеря: ослаблен слот torso"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Взорвал колонки"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 14"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "signal stable"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Упал в обморок"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Забыл главную мелодию"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Сбежал на курилку"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Заглушил фуззом"
+          },
+          {
+            "time": "00:10",
+            "type": "drop",
+            "text": "дроп: улучшен слот torso"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "signal stable"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Села батарейка в педали"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "userId": 5,
+        "classId": "mage",
+        "level": 13,
+        "rating": 7,
+        "hp": 5,
+        "attack": 9,
+        "colorTier": "seraph",
+        "adjective": "Синкопированный",
+        "components": {
+          "hat": "hat_mage",
+          "face": "face_plain",
+          "arms": "arms_cowboy",
+          "torso": "torso_mage_mantle_bottom",
+          "legs": "legs_boots"
+        },
+        "logs": [
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Опоздал на репу"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Порвал джинсы"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "arena sync"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Вызвал на бис"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 10"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "аура усилена"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Перепутал аккорды"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "аура ослабла"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "signal stable"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Села батарейка в педали"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Придумал рифф"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 12"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "signal stable"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Ушел в отрыв"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 13"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "userId": 6,
+        "classId": "cowboy",
+        "level": 18,
+        "rating": 1,
+        "hp": 5,
+        "attack": 9,
+        "colorTier": "palmerin",
+        "adjective": "Палмерин",
+        "components": {
+          "hat": "hat_cowboy",
+          "face": "face_bandana",
+          "arms": "arms_cowboy",
+          "torso": "torso_mage",
+          "legs": "legs_boots"
+        },
+        "logs": [
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 17"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "signal stable"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Перепел вокалиста"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Порвал майку"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "arena sync"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Поймал палочку"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Спас пиво"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "signal stable"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Пробил барабаны"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Пробил фанеру"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Оглушил весь зал"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Не поймал ритм"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "signal stable"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Поймал палочку"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 18"
+          }
+        ]
+      },
+      {
+        "id": 7,
+        "userId": 7,
+        "classId": "cowboy",
+        "level": 18,
+        "rating": 2,
+        "hp": 6,
+        "attack": 8,
+        "colorTier": "palmerin",
+        "adjective": "Палмерин",
+        "components": {
+          "hat": "hat_mage",
+          "face": "face_bandana",
+          "arms": "arms_cowboy",
+          "torso": "torso_warrior",
+          "legs": "legs_boots"
+        },
+        "logs": [
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Выдал соло"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Оттоптали ноги"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "arena sync"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Сфоткал сетлист"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Унесли на руках"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Запутался в проводах"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "signal stable"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Сбежал на курилку"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Услышал басиста"
+          },
+          {
+            "time": "00:10",
+            "type": "drop",
+            "text": "дроп: улучшен слот arms"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Вырвал джек"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 17"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Оглушил дисторшном"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 18"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "signal stable"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Отправил на бар"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "userId": 8,
+        "classId": "cowboy",
+        "level": 17,
+        "rating": 3,
+        "hp": 4,
+        "attack": 9,
+        "colorTier": "reggae",
+        "adjective": "Регги",
+        "components": {
+          "hat": "hat_cowboy",
+          "face": "face_plain",
+          "arms": "arms_cowboy",
+          "torso": "torso_cowboy",
+          "legs": "legs_boots"
+        },
+        "logs": [
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Порвалась струна"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "arena sync"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Забыл главную мелодию"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Раздал стиля"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Застрял в туалете"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "signal stable"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Поскользнулся на танцполе"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Прошел без билета"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 16"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Пластмассовый мир победил"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Перепил бармена"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 17"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "signal stable"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Потерял правый ботинок"
+          },
+          {
+            "time": "00:10",
+            "type": "drop",
+            "text": "потеря: ослаблен слот torso"
+          }
+        ]
+      },
+      {
+        "id": 9,
+        "userId": 9,
+        "classId": "cowboy",
+        "level": 12,
+        "rating": 9,
+        "hp": 5,
+        "attack": 7,
+        "colorTier": "reggae",
+        "adjective": "Регги",
+        "components": {
+          "hat": "hat_cowboy",
+          "face": "face_plain",
+          "arms": "arms_mage_mantle_top",
+          "torso": "torso_cowboy",
+          "legs": "legs_boots"
+        },
+        "logs": [
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Сгорели лампы"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "arena sync"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Села батарейка в педали"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Забрал микрофон"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 11"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Поймал палочку"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "уровень повышен: Lv 12"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "signal stable"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "victory",
+            "text": "победа: Пережил жесткий слэм"
+          },
+          {
+            "time": "00:10",
+            "type": "drop",
+            "text": "дроп: улучшен слот arms"
+          },
+          {
+            "time": "00:10",
+            "type": "levelup",
+            "text": "аура усилена"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Оттоптали ноги"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "аура ослабла"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "match queue ready"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Не попал в бит"
+          },
+          {
+            "time": "00:10",
+            "type": "system",
+            "text": "signal stable"
+          },
+          {
+            "time": "00:10",
+            "type": "combat",
+            "combatResult": "defeat",
+            "text": "поражение: Запутался в проводах"
+          }
+        ]
+      }
+    ]
+  },
+  "telemetryLastRun": {
+    "runId": 13,
+    "status": "finished",
+    "startedAt": "2026-04-24T21:09:30.803Z",
+    "lastUpdatedAt": "2026-04-24T21:11:00.889Z",
+    "finishedAt": "2026-04-24T21:11:00.889Z",
+    "winnerUserId": 6,
+    "tickCount": 45,
+    "fightsTotal": 180,
+    "latestTick": {
+      "tick": 45,
+      "at": "2026-04-24T21:10:59.000Z",
+      "participants": 9,
+      "fights": 4,
+      "pairs": [
+        [
+          5,
+          9
+        ],
+        [
+          8,
+          6
+        ],
+        [
+          3,
+          4
+        ],
+        [
+          7,
+          1
+        ]
+      ],
+      "unmatchedUserIds": [
+        2
+      ],
+      "pairing": {
+        "effectiveMaxDelta": 1.75,
+        "forcedPairsCount": 0,
+        "passStats": [
+          {
+            "passIndex": 1,
+            "deltaLimit": 1.75,
+            "onlyPrioritySet": false,
+            "pairsAccepted": 4
+          }
+        ]
+      },
+      "leaderboardTop": [
+        {
+          "userId": 6,
+          "rating": 1,
+          "level": 18,
+          "power": 12.799999999999999
+        },
+        {
+          "userId": 7,
+          "rating": 2,
+          "level": 18,
+          "power": 12.609523809523807
+        },
+        {
+          "userId": 8,
+          "rating": 3,
+          "level": 17,
+          "power": 12.399999999999999
+        },
+        {
+          "userId": 1,
+          "rating": 4,
+          "level": 16,
+          "power": 11.6
+        },
+        {
+          "userId": 3,
+          "rating": 5,
+          "level": 15,
+          "power": 10.80952380952381
+        }
+      ]
+    },
+    "ticks": [
+      {
+        "tick": 1,
+        "at": "2026-04-24T21:09:30.883Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            9,
+            1
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            2,
+            7
+          ],
+          [
+            8,
+            5
+          ]
+        ],
+        "unmatchedUserIds": [
+          6
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 5,
+            "rating": 1,
+            "level": 2,
+            "power": 3.2
+          },
+          {
+            "userId": 7,
+            "rating": 2,
+            "level": 2,
+            "power": 3.0095238095238095
+          },
+          {
+            "userId": 1,
+            "rating": 3,
+            "level": 2,
+            "power": 2.9142857142857146
+          },
+          {
+            "userId": 4,
+            "rating": 4,
+            "level": 2,
+            "power": 2.914285714285714
+          },
+          {
+            "userId": 6,
+            "rating": 5,
+            "level": 1,
+            "power": 2.8000000000000003
+          }
+        ]
+      },
+      {
+        "tick": 2,
+        "at": "2026-04-24T21:09:32.880Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            6,
+            7
+          ],
+          [
+            9,
+            3
+          ],
+          [
+            2,
+            8
+          ],
+          [
+            1,
+            4
+          ]
+        ],
+        "unmatchedUserIds": [
+          5
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 4,
+            "rating": 1,
+            "level": 3,
+            "power": 3.5142857142857142
+          },
+          {
+            "userId": 6,
+            "rating": 2,
+            "level": 2,
+            "power": 3.4000000000000004
+          },
+          {
+            "userId": 3,
+            "rating": 3,
+            "level": 2,
+            "power": 3.2
+          },
+          {
+            "userId": 5,
+            "rating": 4,
+            "level": 2,
+            "power": 3.2
+          },
+          {
+            "userId": 8,
+            "rating": 5,
+            "level": 2,
+            "power": 3.2
+          }
+        ]
+      },
+      {
+        "tick": 3,
+        "at": "2026-04-24T21:09:34.880Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            1,
+            7
+          ]
+        ],
+        "unmatchedUserIds": [
+          3
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 5,
+            "rating": 1,
+            "level": 3,
+            "power": 3.8
+          },
+          {
+            "userId": 6,
+            "rating": 2,
+            "level": 3,
+            "power": 3.8
+          },
+          {
+            "userId": 1,
+            "rating": 3,
+            "level": 3,
+            "power": 3.5142857142857142
+          },
+          {
+            "userId": 4,
+            "rating": 4,
+            "level": 3,
+            "power": 3.5142857142857142
+          },
+          {
+            "userId": 3,
+            "rating": 5,
+            "level": 2,
+            "power": 3.2
+          }
+        ]
+      },
+      {
+        "tick": 4,
+        "at": "2026-04-24T21:09:36.883Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            3,
+            8
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            7,
+            1
+          ]
+        ],
+        "unmatchedUserIds": [
+          4
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 5,
+            "rating": 1,
+            "level": 4,
+            "power": 4.4
+          },
+          {
+            "userId": 6,
+            "rating": 2,
+            "level": 3,
+            "power": 3.8
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 3,
+            "power": 3.8
+          },
+          {
+            "userId": 1,
+            "rating": 4,
+            "level": 3,
+            "power": 3.591666666666667
+          },
+          {
+            "userId": 4,
+            "rating": 5,
+            "level": 3,
+            "power": 3.5142857142857142
+          }
+        ]
+      },
+      {
+        "tick": 5,
+        "at": "2026-04-24T21:09:38.885Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            4,
+            1
+          ],
+          [
+            3,
+            9
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            5,
+            7
+          ]
+        ],
+        "unmatchedUserIds": [
+          2
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 5,
+            "rating": 1,
+            "level": 4,
+            "power": 4.4
+          },
+          {
+            "userId": 6,
+            "rating": 2,
+            "level": 4,
+            "power": 4.4
+          },
+          {
+            "userId": 7,
+            "rating": 3,
+            "level": 4,
+            "power": 4.209523809523809
+          },
+          {
+            "userId": 1,
+            "rating": 4,
+            "level": 4,
+            "power": 4.191666666666666
+          },
+          {
+            "userId": 3,
+            "rating": 5,
+            "level": 3,
+            "power": 3.8
+          }
+        ]
+      },
+      {
+        "tick": 6,
+        "at": "2026-04-24T21:09:40.888Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            2,
+            9
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            5,
+            7
+          ]
+        ],
+        "unmatchedUserIds": [
+          6
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 5,
+            "rating": 1,
+            "level": 5,
+            "power": 5
+          },
+          {
+            "userId": 3,
+            "rating": 2,
+            "level": 4,
+            "power": 4.4
+          },
+          {
+            "userId": 6,
+            "rating": 3,
+            "level": 4,
+            "power": 4.4
+          },
+          {
+            "userId": 8,
+            "rating": 4,
+            "level": 4,
+            "power": 4.4
+          },
+          {
+            "userId": 7,
+            "rating": 5,
+            "level": 4,
+            "power": 4.209523809523809
+          }
+        ]
+      },
+      {
+        "tick": 7,
+        "at": "2026-04-24T21:09:42.891Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            6,
+            8
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            3,
+            7
+          ]
+        ],
+        "unmatchedUserIds": [
+          5
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 3,
+            "rating": 1,
+            "level": 5,
+            "power": 5
+          },
+          {
+            "userId": 5,
+            "rating": 2,
+            "level": 5,
+            "power": 5
+          },
+          {
+            "userId": 6,
+            "rating": 3,
+            "level": 5,
+            "power": 5
+          },
+          {
+            "userId": 8,
+            "rating": 4,
+            "level": 4,
+            "power": 4.4
+          },
+          {
+            "userId": 7,
+            "rating": 5,
+            "level": 4,
+            "power": 4.209523809523809
+          }
+        ]
+      },
+      {
+        "tick": 8,
+        "at": "2026-04-24T21:09:44.893Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            5,
+            6
+          ],
+          [
+            4,
+            9
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            3,
+            8
+          ]
+        ],
+        "unmatchedUserIds": [
+          7
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 6,
+            "power": 5.6
+          },
+          {
+            "userId": 3,
+            "rating": 2,
+            "level": 5,
+            "power": 5
+          },
+          {
+            "userId": 5,
+            "rating": 3,
+            "level": 5,
+            "power": 5
+          },
+          {
+            "userId": 8,
+            "rating": 4,
+            "level": 5,
+            "power": 5
+          },
+          {
+            "userId": 2,
+            "rating": 5,
+            "level": 4,
+            "power": 4.4
+          }
+        ]
+      },
+      {
+        "tick": 9,
+        "at": "2026-04-24T21:09:46.896Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            5,
+            8
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            7,
+            1
+          ],
+          [
+            4,
+            9
+          ]
+        ],
+        "unmatchedUserIds": [
+          2
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 3,
+            "rating": 1,
+            "level": 6,
+            "power": 5.6
+          },
+          {
+            "userId": 6,
+            "rating": 2,
+            "level": 6,
+            "power": 5.6
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 6,
+            "power": 5.6
+          },
+          {
+            "userId": 5,
+            "rating": 4,
+            "level": 5,
+            "power": 5
+          },
+          {
+            "userId": 1,
+            "rating": 5,
+            "level": 5,
+            "power": 4.75
+          }
+        ]
+      },
+      {
+        "tick": 10,
+        "at": "2026-04-24T21:09:48.898Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            2,
+            7
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            4,
+            9
+          ]
+        ],
+        "unmatchedUserIds": [
+          3
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 7,
+            "power": 6.2
+          },
+          {
+            "userId": 3,
+            "rating": 2,
+            "level": 6,
+            "power": 5.6
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 6,
+            "power": 5.6
+          },
+          {
+            "userId": 1,
+            "rating": 4,
+            "level": 6,
+            "power": 5.35
+          },
+          {
+            "userId": 5,
+            "rating": 5,
+            "level": 5,
+            "power": 5
+          }
+        ]
+      },
+      {
+        "tick": 11,
+        "at": "2026-04-24T21:09:50.904Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            3,
+            8
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            5,
+            7
+          ],
+          [
+            6,
+            1
+          ]
+        ],
+        "unmatchedUserIds": [
+          4
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 7,
+            "power": 6.2
+          },
+          {
+            "userId": 8,
+            "rating": 2,
+            "level": 7,
+            "power": 6.2
+          },
+          {
+            "userId": 3,
+            "rating": 3,
+            "level": 6,
+            "power": 5.6
+          },
+          {
+            "userId": 7,
+            "rating": 4,
+            "level": 6,
+            "power": 5.409523809523809
+          },
+          {
+            "userId": 1,
+            "rating": 5,
+            "level": 6,
+            "power": 5.391666666666667
+          }
+        ]
+      },
+      {
+        "tick": 12,
+        "at": "2026-04-24T21:09:52.905Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            4,
+            9
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            3,
+            7
+          ],
+          [
+            6,
+            8
+          ]
+        ],
+        "unmatchedUserIds": [
+          1
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 8,
+            "power": 6.8
+          },
+          {
+            "userId": 8,
+            "rating": 2,
+            "level": 7,
+            "power": 6.2
+          },
+          {
+            "userId": 7,
+            "rating": 3,
+            "level": 7,
+            "power": 6.0095238095238095
+          },
+          {
+            "userId": 2,
+            "rating": 4,
+            "level": 6,
+            "power": 5.6
+          },
+          {
+            "userId": 3,
+            "rating": 5,
+            "level": 6,
+            "power": 5.6
+          }
+        ]
+      },
+      {
+        "tick": 13,
+        "at": "2026-04-24T21:09:54.909Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            4,
+            5
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            1,
+            7
+          ]
+        ],
+        "unmatchedUserIds": [
+          9
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 8,
+            "power": 6.8
+          },
+          {
+            "userId": 3,
+            "rating": 2,
+            "level": 7,
+            "power": 6.2
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 7,
+            "power": 6.2
+          },
+          {
+            "userId": 7,
+            "rating": 4,
+            "level": 7,
+            "power": 6.0095238095238095
+          },
+          {
+            "userId": 2,
+            "rating": 5,
+            "level": 6,
+            "power": 5.6
+          }
+        ]
+      },
+      {
+        "tick": 14,
+        "at": "2026-04-24T21:09:56.911Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            4,
+            1
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            3,
+            8
+          ],
+          [
+            6,
+            7
+          ]
+        ],
+        "unmatchedUserIds": [
+          9
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 7,
+            "rating": 1,
+            "level": 9,
+            "power": 7.209523809523809
+          },
+          {
+            "userId": 6,
+            "rating": 2,
+            "level": 8,
+            "power": 6.8
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 8,
+            "power": 6.8
+          },
+          {
+            "userId": 2,
+            "rating": 4,
+            "level": 7,
+            "power": 6.2
+          },
+          {
+            "userId": 3,
+            "rating": 5,
+            "level": 7,
+            "power": 6.2
+          }
+        ]
+      },
+      {
+        "tick": 15,
+        "at": "2026-04-24T21:09:58.914Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            9,
+            1
+          ],
+          [
+            4,
+            5
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            6,
+            8
+          ]
+        ],
+        "unmatchedUserIds": [
+          7
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 8,
+            "rating": 1,
+            "level": 9,
+            "power": 7.3999999999999995
+          },
+          {
+            "userId": 7,
+            "rating": 2,
+            "level": 9,
+            "power": 7.209523809523809
+          },
+          {
+            "userId": 3,
+            "rating": 3,
+            "level": 8,
+            "power": 6.8
+          },
+          {
+            "userId": 6,
+            "rating": 4,
+            "level": 8,
+            "power": 6.8
+          },
+          {
+            "userId": 2,
+            "rating": 5,
+            "level": 7,
+            "power": 6.2
+          }
+        ]
+      },
+      {
+        "tick": 16,
+        "at": "2026-04-24T21:10:00.918Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            7,
+            8
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            2,
+            3
+          ]
+        ],
+        "unmatchedUserIds": [
+          6
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 7,
+            "rating": 1,
+            "level": 10,
+            "power": 7.809523809523809
+          },
+          {
+            "userId": 8,
+            "rating": 2,
+            "level": 9,
+            "power": 7.3999999999999995
+          },
+          {
+            "userId": 3,
+            "rating": 3,
+            "level": 8,
+            "power": 6.8
+          },
+          {
+            "userId": 6,
+            "rating": 4,
+            "level": 8,
+            "power": 6.8
+          },
+          {
+            "userId": 2,
+            "rating": 5,
+            "level": 7,
+            "power": 6.2
+          }
+        ]
+      },
+      {
+        "tick": 17,
+        "at": "2026-04-24T21:10:02.921Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            6,
+            3
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            5,
+            4
+          ],
+          [
+            2,
+            8
+          ]
+        ],
+        "unmatchedUserIds": [
+          7
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 7,
+            "rating": 1,
+            "level": 10,
+            "power": 7.809523809523809
+          },
+          {
+            "userId": 3,
+            "rating": 2,
+            "level": 9,
+            "power": 7.3999999999999995
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 9,
+            "power": 7.3999999999999995
+          },
+          {
+            "userId": 6,
+            "rating": 4,
+            "level": 8,
+            "power": 6.8
+          },
+          {
+            "userId": 2,
+            "rating": 5,
+            "level": 7,
+            "power": 6.4
+          }
+        ]
+      },
+      {
+        "tick": 18,
+        "at": "2026-04-24T21:10:04.924Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            7,
+            3
+          ],
+          [
+            6,
+            8
+          ],
+          [
+            9,
+            1
+          ],
+          [
+            5,
+            4
+          ]
+        ],
+        "unmatchedUserIds": [
+          2
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 7,
+            "rating": 1,
+            "level": 10,
+            "power": 7.809523809523809
+          },
+          {
+            "userId": 8,
+            "rating": 2,
+            "level": 9,
+            "power": 7.3999999999999995
+          },
+          {
+            "userId": 3,
+            "rating": 3,
+            "level": 9,
+            "power": 7.1499999999999995
+          },
+          {
+            "userId": 6,
+            "rating": 4,
+            "level": 8,
+            "power": 6.8
+          },
+          {
+            "userId": 2,
+            "rating": 5,
+            "level": 7,
+            "power": 6.4
+          }
+        ]
+      },
+      {
+        "tick": 19,
+        "at": "2026-04-24T21:10:06.925Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            2,
+            4
+          ],
+          [
+            6,
+            3
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            9,
+            1
+          ]
+        ],
+        "unmatchedUserIds": [
+          5
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 8,
+            "rating": 1,
+            "level": 10,
+            "power": 8
+          },
+          {
+            "userId": 7,
+            "rating": 2,
+            "level": 10,
+            "power": 7.809523809523809
+          },
+          {
+            "userId": 3,
+            "rating": 3,
+            "level": 10,
+            "power": 7.75
+          },
+          {
+            "userId": 6,
+            "rating": 4,
+            "level": 8,
+            "power": 6.8
+          },
+          {
+            "userId": 2,
+            "rating": 5,
+            "level": 8,
+            "power": 6.609523809523809
+          }
+        ]
+      },
+      {
+        "tick": 20,
+        "at": "2026-04-24T21:10:08.927Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            5,
+            1
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            7,
+            8
+          ],
+          [
+            4,
+            3
+          ]
+        ],
+        "unmatchedUserIds": [
+          9
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 7,
+            "rating": 1,
+            "level": 11,
+            "power": 8.409523809523808
+          },
+          {
+            "userId": 8,
+            "rating": 2,
+            "level": 10,
+            "power": 8.2
+          },
+          {
+            "userId": 3,
+            "rating": 3,
+            "level": 10,
+            "power": 7.791666666666667
+          },
+          {
+            "userId": 6,
+            "rating": 4,
+            "level": 9,
+            "power": 7.3999999999999995
+          },
+          {
+            "userId": 4,
+            "rating": 5,
+            "level": 9,
+            "power": 7.209523809523809
+          }
+        ]
+      },
+      {
+        "tick": 21,
+        "at": "2026-04-24T21:10:10.931Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            9,
+            5
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            7,
+            8
+          ]
+        ],
+        "unmatchedUserIds": [
+          3
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 7,
+            "rating": 1,
+            "level": 12,
+            "power": 9.00952380952381
+          },
+          {
+            "userId": 8,
+            "rating": 2,
+            "level": 10,
+            "power": 8.2
+          },
+          {
+            "userId": 6,
+            "rating": 3,
+            "level": 10,
+            "power": 8
+          },
+          {
+            "userId": 3,
+            "rating": 4,
+            "level": 10,
+            "power": 7.791666666666667
+          },
+          {
+            "userId": 4,
+            "rating": 5,
+            "level": 9,
+            "power": 7.288888888888888
+          }
+        ]
+      },
+      {
+        "tick": 22,
+        "at": "2026-04-24T21:10:12.932Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            3,
+            6
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            7,
+            8
+          ]
+        ],
+        "unmatchedUserIds": [
+          4
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 7,
+            "rating": 1,
+            "level": 12,
+            "power": 9.00952380952381
+          },
+          {
+            "userId": 6,
+            "rating": 2,
+            "level": 11,
+            "power": 8.6
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 10,
+            "power": 8.2
+          },
+          {
+            "userId": 3,
+            "rating": 4,
+            "level": 10,
+            "power": 7.791666666666667
+          },
+          {
+            "userId": 4,
+            "rating": 5,
+            "level": 9,
+            "power": 7.288888888888888
+          }
+        ]
+      },
+      {
+        "tick": 23,
+        "at": "2026-04-24T21:10:14.935Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            4,
+            3
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            6,
+            7
+          ]
+        ],
+        "unmatchedUserIds": [
+          8
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 12,
+            "power": 9.2
+          },
+          {
+            "userId": 7,
+            "rating": 2,
+            "level": 12,
+            "power": 9.00952380952381
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 10,
+            "power": 8.2
+          },
+          {
+            "userId": 4,
+            "rating": 4,
+            "level": 10,
+            "power": 7.809523809523809
+          },
+          {
+            "userId": 3,
+            "rating": 5,
+            "level": 10,
+            "power": 7.791666666666667
+          }
+        ]
+      },
+      {
+        "tick": 24,
+        "at": "2026-04-24T21:10:16.938Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            9,
+            5
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            7,
+            6
+          ]
+        ],
+        "unmatchedUserIds": [
+          8
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 7,
+            "rating": 1,
+            "level": 13,
+            "power": 9.60952380952381
+          },
+          {
+            "userId": 6,
+            "rating": 2,
+            "level": 12,
+            "power": 9.2
+          },
+          {
+            "userId": 3,
+            "rating": 3,
+            "level": 11,
+            "power": 8.8
+          },
+          {
+            "userId": 8,
+            "rating": 4,
+            "level": 10,
+            "power": 8.2
+          },
+          {
+            "userId": 4,
+            "rating": 5,
+            "level": 10,
+            "power": 7.809523809523809
+          }
+        ]
+      },
+      {
+        "tick": 25,
+        "at": "2026-04-24T21:10:18.942Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            9,
+            5
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            4,
+            8
+          ],
+          [
+            3,
+            6
+          ]
+        ],
+        "unmatchedUserIds": [
+          7
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 13,
+            "power": 9.8
+          },
+          {
+            "userId": 7,
+            "rating": 2,
+            "level": 13,
+            "power": 9.60952380952381
+          },
+          {
+            "userId": 3,
+            "rating": 3,
+            "level": 11,
+            "power": 8.8
+          },
+          {
+            "userId": 4,
+            "rating": 4,
+            "level": 11,
+            "power": 8.409523809523808
+          },
+          {
+            "userId": 8,
+            "rating": 5,
+            "level": 10,
+            "power": 8.2
+          }
+        ]
+      },
+      {
+        "tick": 26,
+        "at": "2026-04-24T21:10:20.945Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            7,
+            6
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            4,
+            8
+          ]
+        ],
+        "unmatchedUserIds": [
+          3
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 7,
+            "rating": 1,
+            "level": 14,
+            "power": 10.209523809523809
+          },
+          {
+            "userId": 6,
+            "rating": 2,
+            "level": 13,
+            "power": 9.8
+          },
+          {
+            "userId": 3,
+            "rating": 3,
+            "level": 11,
+            "power": 8.8
+          },
+          {
+            "userId": 8,
+            "rating": 4,
+            "level": 11,
+            "power": 8.8
+          },
+          {
+            "userId": 4,
+            "rating": 5,
+            "level": 11,
+            "power": 8.409523809523808
+          }
+        ]
+      },
+      {
+        "tick": 27,
+        "at": "2026-04-24T21:10:22.949Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            3,
+            8
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            2,
+            1
+          ]
+        ],
+        "unmatchedUserIds": [
+          4
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 14,
+            "power": 10.4
+          },
+          {
+            "userId": 7,
+            "rating": 2,
+            "level": 14,
+            "power": 10.209523809523809
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 12,
+            "power": 9.399999999999999
+          },
+          {
+            "userId": 3,
+            "rating": 4,
+            "level": 11,
+            "power": 8.8
+          },
+          {
+            "userId": 4,
+            "rating": 5,
+            "level": 11,
+            "power": 8.409523809523808
+          }
+        ]
+      },
+      {
+        "tick": 28,
+        "at": "2026-04-24T21:10:24.950Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            4,
+            3
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            2,
+            1
+          ]
+        ],
+        "unmatchedUserIds": [
+          8
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 7,
+            "rating": 1,
+            "level": 15,
+            "power": 10.80952380952381
+          },
+          {
+            "userId": 6,
+            "rating": 2,
+            "level": 14,
+            "power": 10.4
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 12,
+            "power": 9.399999999999999
+          },
+          {
+            "userId": 4,
+            "rating": 4,
+            "level": 12,
+            "power": 9.00952380952381
+          },
+          {
+            "userId": 3,
+            "rating": 5,
+            "level": 11,
+            "power": 8.8
+          }
+        ]
+      },
+      {
+        "tick": 29,
+        "at": "2026-04-24T21:10:26.954Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            3,
+            4
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            2,
+            1
+          ]
+        ],
+        "unmatchedUserIds": [
+          8
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 15,
+            "power": 11
+          },
+          {
+            "userId": 7,
+            "rating": 2,
+            "level": 15,
+            "power": 10.80952380952381
+          },
+          {
+            "userId": 3,
+            "rating": 3,
+            "level": 12,
+            "power": 9.399999999999999
+          },
+          {
+            "userId": 8,
+            "rating": 4,
+            "level": 12,
+            "power": 9.399999999999999
+          },
+          {
+            "userId": 4,
+            "rating": 5,
+            "level": 12,
+            "power": 9.00952380952381
+          }
+        ]
+      },
+      {
+        "tick": 30,
+        "at": "2026-04-24T21:10:28.959Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            8,
+            3
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            9,
+            2
+          ]
+        ],
+        "unmatchedUserIds": [
+          6
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 15,
+            "power": 11
+          },
+          {
+            "userId": 7,
+            "rating": 2,
+            "level": 15,
+            "power": 10.80952380952381
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 13,
+            "power": 10
+          },
+          {
+            "userId": 3,
+            "rating": 4,
+            "level": 12,
+            "power": 9.399999999999999
+          },
+          {
+            "userId": 4,
+            "rating": 5,
+            "level": 12,
+            "power": 8.95
+          }
+        ]
+      },
+      {
+        "tick": 31,
+        "at": "2026-04-24T21:10:30.963Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            6,
+            7
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            5,
+            1
+          ],
+          [
+            9,
+            2
+          ]
+        ],
+        "unmatchedUserIds": [
+          8
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 7,
+            "rating": 1,
+            "level": 16,
+            "power": 11.409523809523808
+          },
+          {
+            "userId": 6,
+            "rating": 2,
+            "level": 15,
+            "power": 10.75
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 13,
+            "power": 10
+          },
+          {
+            "userId": 3,
+            "rating": 4,
+            "level": 12,
+            "power": 9.399999999999999
+          },
+          {
+            "userId": 4,
+            "rating": 5,
+            "level": 12,
+            "power": 8.95
+          }
+        ]
+      },
+      {
+        "tick": 32,
+        "at": "2026-04-24T21:10:32.960Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            8,
+            3
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            2,
+            1
+          ]
+        ],
+        "unmatchedUserIds": [
+          7
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 7,
+            "rating": 1,
+            "level": 16,
+            "power": 11.409523809523808
+          },
+          {
+            "userId": 6,
+            "rating": 2,
+            "level": 15,
+            "power": 11
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 13,
+            "power": 9.60952380952381
+          },
+          {
+            "userId": 3,
+            "rating": 4,
+            "level": 12,
+            "power": 9.399999999999999
+          },
+          {
+            "userId": 4,
+            "rating": 5,
+            "level": 12,
+            "power": 8.95
+          }
+        ]
+      },
+      {
+        "tick": 33,
+        "at": "2026-04-24T21:10:34.963Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            7,
+            6
+          ],
+          [
+            8,
+            3
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            5,
+            9
+          ]
+        ],
+        "unmatchedUserIds": [
+          2
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 16,
+            "power": 11.6
+          },
+          {
+            "userId": 7,
+            "rating": 2,
+            "level": 16,
+            "power": 11.409523809523808
+          },
+          {
+            "userId": 3,
+            "rating": 3,
+            "level": 13,
+            "power": 10
+          },
+          {
+            "userId": 8,
+            "rating": 4,
+            "level": 13,
+            "power": 9.60952380952381
+          },
+          {
+            "userId": 4,
+            "rating": 5,
+            "level": 12,
+            "power": 8.95
+          }
+        ]
+      },
+      {
+        "tick": 34,
+        "at": "2026-04-24T21:10:36.967Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            8,
+            3
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            4,
+            1
+          ]
+        ],
+        "unmatchedUserIds": [
+          9
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 17,
+            "power": 12.2
+          },
+          {
+            "userId": 7,
+            "rating": 2,
+            "level": 16,
+            "power": 11.409523809523808
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 14,
+            "power": 10.209523809523809
+          },
+          {
+            "userId": 3,
+            "rating": 4,
+            "level": 13,
+            "power": 10
+          },
+          {
+            "userId": 4,
+            "rating": 5,
+            "level": 12,
+            "power": 9.00952380952381
+          }
+        ]
+      },
+      {
+        "tick": 35,
+        "at": "2026-04-24T21:10:38.970Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            8,
+            3
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            2,
+            1
+          ]
+        ],
+        "unmatchedUserIds": [
+          4
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 17,
+            "power": 12.2
+          },
+          {
+            "userId": 7,
+            "rating": 2,
+            "level": 16,
+            "power": 11.35
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 15,
+            "power": 10.80952380952381
+          },
+          {
+            "userId": 3,
+            "rating": 4,
+            "level": 13,
+            "power": 9.591666666666667
+          },
+          {
+            "userId": 4,
+            "rating": 5,
+            "level": 12,
+            "power": 9.00952380952381
+          }
+        ]
+      },
+      {
+        "tick": 36,
+        "at": "2026-04-24T21:10:40.974Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            4,
+            3
+          ],
+          [
+            8,
+            7
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            2,
+            1
+          ]
+        ],
+        "unmatchedUserIds": [
+          6
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 17,
+            "power": 12.2
+          },
+          {
+            "userId": 7,
+            "rating": 2,
+            "level": 16,
+            "power": 11.35
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 15,
+            "power": 10.80952380952381
+          },
+          {
+            "userId": 3,
+            "rating": 4,
+            "level": 13,
+            "power": 9.591666666666667
+          },
+          {
+            "userId": 4,
+            "rating": 5,
+            "level": 12,
+            "power": 9.00952380952381
+          }
+        ]
+      },
+      {
+        "tick": 37,
+        "at": "2026-04-24T21:10:42.975Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            6,
+            7
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            5,
+            1
+          ]
+        ],
+        "unmatchedUserIds": [
+          8
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 17,
+            "power": 12.2
+          },
+          {
+            "userId": 7,
+            "rating": 2,
+            "level": 16,
+            "power": 11.35
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 15,
+            "power": 10.80952380952381
+          },
+          {
+            "userId": 4,
+            "rating": 4,
+            "level": 13,
+            "power": 9.60952380952381
+          },
+          {
+            "userId": 3,
+            "rating": 5,
+            "level": 13,
+            "power": 9.591666666666667
+          }
+        ]
+      },
+      {
+        "tick": 38,
+        "at": "2026-04-24T21:10:44.980Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            8,
+            7
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            9,
+            5
+          ],
+          [
+            2,
+            1
+          ]
+        ],
+        "unmatchedUserIds": [
+          6
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 17,
+            "power": 12.2
+          },
+          {
+            "userId": 7,
+            "rating": 2,
+            "level": 16,
+            "power": 11.35
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 15,
+            "power": 10.80952380952381
+          },
+          {
+            "userId": 3,
+            "rating": 4,
+            "level": 14,
+            "power": 10.191666666666666
+          },
+          {
+            "userId": 4,
+            "rating": 5,
+            "level": 13,
+            "power": 9.60952380952381
+          }
+        ]
+      },
+      {
+        "tick": 39,
+        "at": "2026-04-24T21:10:46.983Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            6,
+            7
+          ],
+          [
+            8,
+            3
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            9,
+            5
+          ]
+        ],
+        "unmatchedUserIds": [
+          2
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 17,
+            "power": 12.2
+          },
+          {
+            "userId": 7,
+            "rating": 2,
+            "level": 16,
+            "power": 11.35
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 15,
+            "power": 10.80952380952381
+          },
+          {
+            "userId": 1,
+            "rating": 4,
+            "level": 14,
+            "power": 10.4
+          },
+          {
+            "userId": 3,
+            "rating": 5,
+            "level": 14,
+            "power": 10.191666666666666
+          }
+        ]
+      },
+      {
+        "tick": 40,
+        "at": "2026-04-24T21:10:48.986Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            8,
+            1
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            4,
+            3
+          ]
+        ],
+        "unmatchedUserIds": [
+          5
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 17,
+            "power": 12.2
+          },
+          {
+            "userId": 7,
+            "rating": 2,
+            "level": 16,
+            "power": 11.35
+          },
+          {
+            "userId": 1,
+            "rating": 3,
+            "level": 15,
+            "power": 11
+          },
+          {
+            "userId": 8,
+            "rating": 4,
+            "level": 15,
+            "power": 10.80952380952381
+          },
+          {
+            "userId": 4,
+            "rating": 5,
+            "level": 14,
+            "power": 10.28888888888889
+          }
+        ]
+      },
+      {
+        "tick": 41,
+        "at": "2026-04-24T21:10:50.997Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            8,
+            1
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            2,
+            9
+          ],
+          [
+            4,
+            3
+          ]
+        ],
+        "unmatchedUserIds": [
+          5
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 17,
+            "power": 12.2
+          },
+          {
+            "userId": 1,
+            "rating": 2,
+            "level": 16,
+            "power": 11.6
+          },
+          {
+            "userId": 7,
+            "rating": 3,
+            "level": 16,
+            "power": 11.35
+          },
+          {
+            "userId": 3,
+            "rating": 4,
+            "level": 15,
+            "power": 11.2
+          },
+          {
+            "userId": 8,
+            "rating": 5,
+            "level": 15,
+            "power": 10.80952380952381
+          }
+        ]
+      },
+      {
+        "tick": 42,
+        "at": "2026-04-24T21:10:52.991Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            8,
+            3
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            4,
+            7
+          ]
+        ],
+        "unmatchedUserIds": [
+          9
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 17,
+            "power": 12.2
+          },
+          {
+            "userId": 1,
+            "rating": 2,
+            "level": 16,
+            "power": 11.6
+          },
+          {
+            "userId": 7,
+            "rating": 3,
+            "level": 16,
+            "power": 11.409523809523808
+          },
+          {
+            "userId": 8,
+            "rating": 4,
+            "level": 16,
+            "power": 11.409523809523808
+          },
+          {
+            "userId": 3,
+            "rating": 5,
+            "level": 15,
+            "power": 11.2
+          }
+        ]
+      },
+      {
+        "tick": 43,
+        "at": "2026-04-24T21:10:54.995Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            8,
+            7
+          ],
+          [
+            6,
+            1
+          ],
+          [
+            9,
+            2
+          ],
+          [
+            4,
+            3
+          ]
+        ],
+        "unmatchedUserIds": [
+          5
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 17,
+            "power": 12.2
+          },
+          {
+            "userId": 7,
+            "rating": 2,
+            "level": 17,
+            "power": 12.00952380952381
+          },
+          {
+            "userId": 1,
+            "rating": 3,
+            "level": 16,
+            "power": 11.6
+          },
+          {
+            "userId": 8,
+            "rating": 4,
+            "level": 16,
+            "power": 11.409523809523808
+          },
+          {
+            "userId": 3,
+            "rating": 5,
+            "level": 15,
+            "power": 10.80952380952381
+          }
+        ]
+      },
+      {
+        "tick": 44,
+        "at": "2026-04-24T21:10:56.997Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            5,
+            9
+          ],
+          [
+            8,
+            1
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            2,
+            4
+          ]
+        ],
+        "unmatchedUserIds": [
+          3
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 7,
+            "rating": 1,
+            "level": 18,
+            "power": 12.609523809523807
+          },
+          {
+            "userId": 6,
+            "rating": 2,
+            "level": 17,
+            "power": 12.2
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 17,
+            "power": 12.00952380952381
+          },
+          {
+            "userId": 1,
+            "rating": 4,
+            "level": 16,
+            "power": 11.6
+          },
+          {
+            "userId": 3,
+            "rating": 5,
+            "level": 15,
+            "power": 10.80952380952381
+          }
+        ]
+      },
+      {
+        "tick": 45,
+        "at": "2026-04-24T21:10:59.000Z",
+        "participants": 9,
+        "fights": 4,
+        "pairs": [
+          [
+            5,
+            9
+          ],
+          [
+            8,
+            6
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            7,
+            1
+          ]
+        ],
+        "unmatchedUserIds": [
+          2
+        ],
+        "pairing": {
+          "effectiveMaxDelta": 1.75,
+          "forcedPairsCount": 0,
+          "passStats": [
+            {
+              "passIndex": 1,
+              "deltaLimit": 1.75,
+              "onlyPrioritySet": false,
+              "pairsAccepted": 4
+            }
+          ]
+        },
+        "leaderboardTop": [
+          {
+            "userId": 6,
+            "rating": 1,
+            "level": 18,
+            "power": 12.799999999999999
+          },
+          {
+            "userId": 7,
+            "rating": 2,
+            "level": 18,
+            "power": 12.609523809523807
+          },
+          {
+            "userId": 8,
+            "rating": 3,
+            "level": 17,
+            "power": 12.399999999999999
+          },
+          {
+            "userId": 1,
+            "rating": 4,
+            "level": 16,
+            "power": 11.6
+          },
+          {
+            "userId": 3,
+            "rating": 5,
+            "level": 15,
+            "power": 10.80952380952381
+          }
+        ]
+      }
+    ]
+  }
+}

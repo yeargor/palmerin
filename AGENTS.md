@@ -14,12 +14,12 @@
 - `docs/concept.md` - product concept and core direction.
 - `docs/concept_details.md` - detailed feature intent and behavior notes.
 - `docs/tamagotchi-ascii-art-skill.md` - ASCII style and color references.
-- `docs/warrior_sprite.txt` - canonical warrior sprite.
-- `docs/mage_sprite.txt` - canonical mage sprite.
-- `docs/cowboy_sprite.txt` - canonical cowboy sprite.
+- `docs/sprites/warrior_sprite.txt` - canonical warrior sprite.
+- `docs/sprites/mage_sprite.txt` - canonical mage sprite.
+- `docs/sprites/cowboy_sprite.txt` - canonical cowboy sprite.
 - `docs/character_generator_architecture.md` - generator architecture, component system, centering, grid, offsets, and extension rules.
 - `apps/web/index.html` - canonical frontend entrypoint.
-- `apps/web/app.js` - frontend runtime and UI orchestration.
+- `apps/web/app.v4.js` - active frontend runtime and UI orchestration.
 - `apps/backend/server.mjs` - backend API and authoritative game loop.
 - `packages/core/sprite-constructor.js` - sprite constructor and component metadata.
 - `packages/core/battle-engine.mjs` - battle/progression calculations used by backend.
