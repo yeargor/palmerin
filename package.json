@@ -6,7 +6,6 @@
   "scripts": {
     "web:dev": "node ./scripts/serve-with-logs.mjs",
     "backend:dev": "node ./apps/backend/server.mjs",
-    "sync:web-sprites": "node ./scripts/sync-web-sprite-constructor.mjs",
     "db:migrate": "node ./scripts/db-migrate.mjs",
     "serve:logs": "node ./scripts/serve-with-logs.mjs",
     "simulate:battle": "node ./scripts/simulate-battle-run.mjs",
