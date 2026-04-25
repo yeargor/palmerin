@@ -2084,6 +2084,12 @@ const componentNameRuById = {
   hat_warrior: "Шлем",
   hat_mage: "Шляпа волшебника",
   hat_cowboy: "Ковбойская шляпа",
+  hat_warrior_crown: "Корона воина",
+  hat_mage_halo: "Нимб волшебника",
+  hat_cowboy_emu_kak_raz: "Ковбойская шляпа",
+  face_plain: "Обычное лицо",
+  face_bandana: "Лицо в бандане",
+  face_blessed_eyes: "Благословенные глаза",
   arms_warrior: "Щит и меч",
   arms_mage: "Рубаха",
   arms_mage_mantle_top: "Магическое ожерелье",
@@ -2093,6 +2099,8 @@ const componentNameRuById = {
   torso_mage_mantle_bottom: "Мантия колдуна",
   torso_cowboy: "Ремень охотника",
   legs_boots: "Ботинки",
+  legs_cowboy_boots: "Ковбойские сапоги",
+  legs_brass_kneepads: "Латунные наколенники",
 };
 
 const baseClassLabelRuById = {

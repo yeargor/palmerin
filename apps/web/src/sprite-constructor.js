@@ -79,7 +79,7 @@ export const componentById = {
     anchor: { pattern: "/\\", targetIndexes: [1, 1] },
     baseClass: "warrior",
     stats: { hp: 2, attack: 0 },
-    weight: 1,
+    weight: 2,
   }),
   hat_mage: new SpriteComponent({
     id: "hat_mage",
@@ -89,7 +89,7 @@ export const componentById = {
     anchor: { pattern: "__/  \\___", targetIndexes: [3, 5] },
     baseClass: "mage",
     stats: { hp: 1, attack: 1 },
-    weight: 1,
+    weight: 2,
   }),
   hat_cowboy: new SpriteComponent({
     id: "hat_cowboy",
@@ -98,7 +98,38 @@ export const componentById = {
     anchor: { pattern: "__/--\\___", targetIndexes: [3, 5] },
     baseClass: "cowboy",
     stats: { hp: 1, attack: 1 },
-    weight: 1,
+    weight: 2,
+  }),
+  hat_warrior_crown: new SpriteComponent({
+    id: "hat_warrior_crown",
+    slot: "hat",
+    layers: [makeLayer(0, 3, "✦_✦_✦", "sprite-gold")],
+    anchor: { pattern: "✦_✦_✦", targetIndexes: [2, 2] },
+    baseClass: "warrior",
+    stats: { hp: 1, attack: 0 },
+    weight: 6,
+  }),
+  hat_mage_halo: new SpriteComponent({
+    id: "hat_mage_halo",
+    slot: "hat",
+    layers: [makeLayer(0, 4, "___+_", "sprite-gold")],
+    anchor: { pattern: "___+_", targetIndexes: [2, 2] },
+    baseClass: "mage",
+    stats: { hp: 1, attack: 0 },
+    weight: 6,
+  }),
+  hat_cowboy_emu_kak_raz: new SpriteComponent({
+    id: "hat_cowboy_emu_kak_raz",
+    slot: "hat",
+    layers: [
+      makeLayer(0, 5, "____", "sprite-leather"),
+      makeLayer(1, 1, "___/____\\_)---)", "sprite-leather"),
+    ],
+    effects: [{ type: "shift-slot-anchors", slots: ["face", "arms", "torso", "legs"], dy: 1 }],
+    anchor: { pattern: "___/____\\_)---)", targetIndexes: [4, 6] },
+    baseClass: "cowboy",
+    stats: { hp: 0, attack: 1 },
+    weight: 6,
   }),
 
   face_plain: new SpriteComponent({
@@ -107,7 +138,7 @@ export const componentById = {
     layers: [makeLayer(0, 2, "( ·  ·)")],
     anchor: { pattern: "( ·  ·)", targetIndexes: [2, 4] },
     stats: { hp: 1, attack: 1 },
-    weight: 1,
+    weight: 4,
   }),
   face_bandana: new SpriteComponent({
     id: "face_bandana",
@@ -116,6 +147,14 @@ export const componentById = {
     anchor: { pattern: ">( ·  ·)", targetIndexes: [3, 5] },
     baseClass: "cowboy",
     stats: { hp: 1, attack: 1 },
+    weight: 1,
+  }),
+  face_blessed_eyes: new SpriteComponent({
+    id: "face_blessed_eyes",
+    slot: "face",
+    layers: [makeLayer(0, 4, "( ✦  ✦)")],
+    anchor: { pattern: "( ✦  ✦)", targetIndexes: [2, 4] },
+    stats: { hp: 1, attack: 0 },
     weight: 1,
   }),
 
@@ -217,7 +256,23 @@ export const componentById = {
     layers: [makeLayer(0, 2, "/_/ \\_\\")],
     anchor: { pattern: "/_/ \\_\\", targetIndexes: [3, 3] },
     stats: { hp: 1, attack: 1 },
-    weight: 1,
+    weight: 3,
+  }),
+  legs_cowboy_boots: new SpriteComponent({
+    id: "legs_cowboy_boots",
+    slot: "legs",
+    layers: [makeLayer(0, 3, "JH |l", "sprite-leather")],
+    anchor: { pattern: "JH |l", targetIndexes: [2, 2] },
+    stats: { hp: 1, attack: 0 },
+    weight: 6,
+  }),
+  legs_brass_kneepads: new SpriteComponent({
+    id: "legs_brass_kneepads",
+    slot: "legs",
+    layers: [makeLayer(0, 2, "/o/ \\o\\")],
+    anchor: { pattern: "/o/ \\o\\", targetIndexes: [3, 3] },
+    stats: { hp: 1, attack: 1 },
+    weight: 4,
   }),
 };
 
@@ -246,11 +301,11 @@ export const characterPresetByClassId = {
 };
 
 export const randomPoolBySlot = {
-  hat: ["hat_warrior", "hat_mage", "hat_cowboy"],
-  face: ["face_plain", "face_bandana"],
+  hat: ["hat_warrior", "hat_mage", "hat_cowboy", "hat_warrior_crown", "hat_mage_halo", "hat_cowboy_emu_kak_raz"],
+  face: ["face_plain", "face_bandana", "face_blessed_eyes"],
   arms: ["arms_warrior", "arms_mage", "arms_mage_mantle_top", "arms_cowboy"],
   torso: ["torso_warrior", "torso_mage", "torso_mage_mantle_bottom", "torso_cowboy"],
-  legs: ["legs_boots"],
+  legs: ["legs_boots", "legs_cowboy_boots", "legs_brass_kneepads"],
 };
 
 const BASE_CLASS_IDS = ["mage", "cowboy", "warrior"];
