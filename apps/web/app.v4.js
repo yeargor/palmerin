@@ -11,7 +11,7 @@ import {
   getPresetColorTierWeights,
   getPresetCombatStats,
   renderPresetToSprite,
-} from "../../packages/core/sprite-constructor.js";
+} from "./src/sprite-constructor.js";
 import { CHARACTER_QUOTES } from "./src/character-quotes.js";
 import { createApiClient, probeBackendConnection } from "./src/api-client.js";
 import { requireTelegramUserId, resolveTelegramUserId, resolveTelegramUsername } from "./src/telegram-context.js";
