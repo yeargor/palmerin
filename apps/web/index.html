@@ -59,6 +59,15 @@
 
       <button class="close-ascii-btn" id="closeAsciiBtn" type="button" aria-label="Open profiles">[x]</button>
       <button class="admin-ascii-btn" id="adminAsciiBtn" type="button" aria-label="Open admin">[#]</button>
+      <button class="leaderboard-ascii-btn" id="leaderboardAsciiBtn" type="button" aria-label="Open leaderboard">[t]</button>
+      <button class="info-ascii-btn" id="infoAsciiBtn" type="button" aria-label="Open info">[i]</button>
+
+      <div class="info-overlay" id="infoOverlay" hidden>
+        <section class="info-modal" id="infoModal" aria-label="Game information dialog" role="dialog" aria-modal="true">
+          <button class="info-close-btn" id="infoCloseBtn" type="button" aria-label="Close info">[x]</button>
+          <pre class="info-frame" id="infoFrame"></pre>
+        </section>
+      </div>
     </main>
 
     <script type="module" src="./app.v4.js"></script>

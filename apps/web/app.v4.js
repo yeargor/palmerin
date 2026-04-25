@@ -504,6 +504,12 @@ function applyRoleBasedBottomButtons() {
   if (adminAsciiBtnEl) {
     adminAsciiBtnEl.style.display = shouldShow ? "" : "none";
   }
+  if (leaderboardAsciiBtnEl) {
+    leaderboardAsciiBtnEl.style.display = shouldShow ? "none" : "";
+  }
+  if (infoAsciiBtnEl) {
+    infoAsciiBtnEl.style.display = shouldShow ? "none" : "";
+  }
 }
 
 async function initializeSessionContext() {
@@ -2075,10 +2081,22 @@ const logoWrapEl = document.querySelector(".game-logo-wrap");
 const logoEl = document.querySelector(".game-logo");
 const closeAsciiBtnEl = document.getElementById("closeAsciiBtn");
 const adminAsciiBtnEl = document.getElementById("adminAsciiBtn");
+const leaderboardAsciiBtnEl = document.getElementById("leaderboardAsciiBtn");
+const infoAsciiBtnEl = document.getElementById("infoAsciiBtn");
+const infoOverlayEl = document.getElementById("infoOverlay");
+const infoModalEl = document.getElementById("infoModal");
+const infoFrameEl = document.getElementById("infoFrame");
+const infoCloseBtnEl = document.getElementById("infoCloseBtn");
 let character = null;
 let replyTypewriter = null;
 let adminLayoutResizeBound = false;
 let adminLayoutResizeTimer = null;
+let mainBottomButtonsBound = false;
+
+const GAME_INFO_TEXT = [
+  "Привет! В этой игре не нужно ничего делать - тебя появился персонаж, он будет играть и развиваться за тебя всё время, что будет идти концерт! Бои проходят раз в минуту, в ходе боев твой персонаж может визуально обновляться, получать новые вещи и улучшать уровень.",
+  "Таблицу лидеров можешь посмотреть, нажав на кнопку [t] внизу экрана, удачи",
+].join("\n");
 
 const componentNameRuById = {
   hat_warrior: "Шлем",
@@ -2154,6 +2172,122 @@ function openProfilePage(profileParam) {
 function openHomePage() {
   detachAdminLayoutResizeSync();
   window.location.href = "./index.html";
+}
+
+function openLiveLeaderboardPage() {
+  detachAdminLayoutResizeSync();
+  window.location.href = "./live.html";
+}
+
+function buildAsciiInfoFrame(rawText, maxInnerWidth = 44) {
+  const normalized = String(rawText || "").replace(/\r\n/g, "\n");
+  const srcLines = normalized.split("\n");
+  const wrapped = [];
+
+  for (const srcLine of srcLines) {
+    const trimmed = srcLine.trim();
+    if (!trimmed) {
+      wrapped.push("");
+      continue;
+    }
+
+    const words = trimmed.split(/\s+/);
+    let currentLine = "";
+    for (const word of words) {
+      if (!currentLine) {
+        currentLine = word;
+        continue;
+      }
+      if ((currentLine.length + 1 + word.length) <= maxInnerWidth) {
+        currentLine += ` ${word}`;
+      } else {
+        wrapped.push(currentLine);
+        currentLine = word;
+      }
+    }
+    if (currentLine) {
+      wrapped.push(currentLine);
+    }
+  }
+
+  const measuredWidth = wrapped.reduce((max, line) => Math.max(max, line.length), 0);
+  const innerWidth = Math.max(24, Math.min(maxInnerWidth, measuredWidth));
+  const horizontal = `+${"-".repeat(innerWidth + 2)}+`;
+  const frameLines = wrapped.map((line) => `| ${line.padEnd(innerWidth, " ")} |`);
+  return [horizontal, ...frameLines, horizontal].join("\n");
+}
+
+function measureInfoFrameMaxChars() {
+  if (!infoFrameEl) {
+    return 44;
+  }
+  const frameWidthPx = Math.max(0, infoFrameEl.clientWidth || infoModalEl?.clientWidth || 0);
+  if (!frameWidthPx) {
+    return 44;
+  }
+
+  const probe = document.createElement("span");
+  const style = window.getComputedStyle(infoFrameEl);
+  probe.textContent = "MMMMMMMMMM";
+  probe.style.position = "absolute";
+  probe.style.visibility = "hidden";
+  probe.style.whiteSpace = "pre";
+  probe.style.fontFamily = style.fontFamily;
+  probe.style.fontSize = style.fontSize;
+  probe.style.fontWeight = style.fontWeight;
+  document.body.appendChild(probe);
+  const charWidth = Math.max(1, probe.getBoundingClientRect().width / 10);
+  probe.remove();
+
+  const chars = Math.floor(frameWidthPx / charWidth) - 4;
+  return Math.max(24, Math.min(72, chars));
+}
+
+function openInfoOverlay() {
+  if (!infoOverlayEl || !infoFrameEl) {
+    return;
+  }
+  infoOverlayEl.hidden = false;
+  // Measure after opening so ASCII frame fills modal width but stays inside paddings.
+  const maxCharsByModal = measureInfoFrameMaxChars();
+  infoFrameEl.textContent = buildAsciiInfoFrame(GAME_INFO_TEXT, maxCharsByModal);
+}
+
+function closeInfoOverlay() {
+  if (!infoOverlayEl) {
+    return;
+  }
+  infoOverlayEl.hidden = true;
+}
+
+function bindMainBottomButtons() {
+  if (mainBottomButtonsBound) {
+    return;
+  }
+
+  leaderboardAsciiBtnEl?.addEventListener("click", openLiveLeaderboardPage);
+  infoAsciiBtnEl?.addEventListener("click", openInfoOverlay);
+  infoCloseBtnEl?.addEventListener("click", closeInfoOverlay);
+  infoOverlayEl?.addEventListener("click", (event) => {
+    if (event.target === infoOverlayEl) {
+      closeInfoOverlay();
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeInfoOverlay();
+    }
+  });
+  window.addEventListener("resize", () => {
+    if (!infoOverlayEl?.hidden) {
+      const maxCharsByModal = measureInfoFrameMaxChars();
+      if (infoFrameEl) {
+        infoFrameEl.textContent = buildAsciiInfoFrame(GAME_INFO_TEXT, maxCharsByModal);
+      }
+    }
+  });
+
+  mainBottomButtonsBound = true;
 }
 
 function openUserSession(userId) {
@@ -2895,14 +3029,15 @@ async function renderLiveLeaderboardPage() {
   appRootEl.innerHTML = `
     <section class="live-leaderboard-screen" aria-label="Live leaderboard panel">
       <pre class="admin-title">$ live/leaderboard</pre>
+      <button class="live-close-btn" id="liveCloseBtn" type="button" aria-label="Back to home">[x]</button>
       <div class="admin-table-wrap live-admin-table-wrap" id="adminTableWrap">
         <pre class="admin-table live-admin-table" id="adminTable"></pre>
       </div>
-      <div class="live-footer">
-        <p class="admin-summary" id="liveLeaderboardSummary">source: backend</p>
-      </div>
     </section>
   `;
+
+  const liveCloseBtn = document.getElementById("liveCloseBtn");
+  liveCloseBtn?.addEventListener("click", openHomePage);
 
   const renderSnapshot = async () => {
     let backendState;
@@ -2912,10 +3047,6 @@ async function renderLiveLeaderboardPage() {
       const tableEl = document.getElementById("adminTable");
       if (tableEl) {
         tableEl.textContent = "connection error: backend is required";
-      }
-      const summaryEl = document.getElementById("liveLeaderboardSummary");
-      if (summaryEl) {
-        summaryEl.textContent = "backend mode: unavailable";
       }
       return;
     }
@@ -2937,13 +3068,6 @@ async function renderLiveLeaderboardPage() {
         highlightTopFive: displayState.revealTopFive && !displayState.hiddenValues,
       });
       fitAdminTableToViewport();
-    }
-    const summaryEl = document.getElementById("liveLeaderboardSummary");
-    if (summaryEl) {
-      const gameState = backendState.gameState || {};
-      const modeLabel = gameState.finished ? "frozen" : "live";
-      const battlesLabel = gameState.battlesStarted ? "on" : "off";
-      summaryEl.textContent = `backend mode: ${modeLabel} • battles: ${battlesLabel} • users: ${rows.length} • source: backend`;
     }
   };
 
@@ -3863,6 +3987,7 @@ async function renderMainPage() {
   }
 
   applyRoleBasedBottomButtons();
+  bindMainBottomButtons();
   if (isCurrentSessionAdmin) {
     if (closeAsciiBtnEl) {
       closeAsciiBtnEl.addEventListener("click", openProfileSelectorPage);

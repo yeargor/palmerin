@@ -76,11 +76,96 @@ body {
   cursor: pointer;
 }
 
+.leaderboard-ascii-btn {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  z-index: 10;
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
+.info-ascii-btn {
+  position: absolute;
+  left: 56px;
+  bottom: 10px;
+  z-index: 10;
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
+.info-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 12px 56px;
+}
+
+.info-overlay[hidden] {
+  display: none;
+}
+
+.info-modal {
+  position: relative;
+  width: min(calc(100vw - 24px), 560px);
+  max-height: min(76vh, 520px);
+  background: #000000;
+  border: 1px solid #2a2a2a;
+  padding: 12px;
+  overflow: auto;
+}
+
+.info-frame {
+  margin: 32px 0 0;
+  width: 100%;
+  overflow: hidden;
+  color: #ffffff;
+  font-size: clamp(12px, 2.8vw, 16px);
+  line-height: 1.35;
+  white-space: pre;
+  text-align: left;
+}
+
+.info-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 0 8px;
+  cursor: pointer;
+}
+
 .profile-selector-mode .close-ascii-btn {
   display: none;
 }
 
 .profile-selector-mode .admin-ascii-btn {
+  display: none;
+}
+
+.profile-selector-mode .leaderboard-ascii-btn,
+.profile-selector-mode .info-ascii-btn {
   display: none;
 }
 
@@ -265,6 +350,7 @@ body {
 }
 
 .live-leaderboard-screen {
+  position: relative;
   height: 100dvh;
   min-height: 100svh;
   width: 100%;
@@ -291,9 +377,18 @@ body {
   line-height: 1.25;
 }
 
-.live-footer {
-  border-top: 1px solid #2a2a2a;
-  padding-top: 8px;
+.live-close-btn {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 20px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
 }
 
 @media (orientation: portrait) {
