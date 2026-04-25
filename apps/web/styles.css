@@ -364,10 +364,37 @@ body {
   gap: 10px;
 }
 
+.live-leaderboard-layout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(0, 3fr) minmax(140px, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.live-qr-wrap {
+  border: 0;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.live-qr-image {
+  width: min(100%, 300px);
+  height: auto;
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  display: block;
+}
+
 .live-admin-table-wrap {
   width: 100%;
   max-width: 100%;
   padding: 10px;
+  min-height: 0;
+  border: 0;
   justify-content: center;
   align-items: flex-start;
 }
@@ -377,18 +404,14 @@ body {
   line-height: 1.25;
 }
 
-.live-close-btn {
-  position: absolute;
-  left: 24px;
-  bottom: 24px;
-  border: 0;
-  background: transparent;
-  color: #ffffff;
-  font-family: "Courier New", Courier, monospace;
-  font-size: 20px;
-  line-height: 1;
-  padding: 0;
-  cursor: pointer;
+@media (max-width: 980px) {
+  .live-leaderboard-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .live-qr-wrap {
+    display: none;
+  }
 }
 
 @media (orientation: portrait) {

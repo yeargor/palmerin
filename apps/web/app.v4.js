@@ -3029,15 +3029,19 @@ async function renderLiveLeaderboardPage() {
   appRootEl.innerHTML = `
     <section class="live-leaderboard-screen" aria-label="Live leaderboard panel">
       <pre class="admin-title">$ live/leaderboard</pre>
-      <button class="live-close-btn" id="liveCloseBtn" type="button" aria-label="Back to home">[x]</button>
-      <div class="admin-table-wrap live-admin-table-wrap" id="adminTableWrap">
-        <pre class="admin-table live-admin-table" id="adminTable"></pre>
+      <div class="live-leaderboard-layout">
+        <aside class="live-qr-wrap" aria-label="QR left">
+          <img class="live-qr-image" src="./assets/qr.png" alt="QR code" />
+        </aside>
+        <div class="admin-table-wrap live-admin-table-wrap" id="adminTableWrap">
+          <pre class="admin-table live-admin-table" id="adminTable"></pre>
+        </div>
+        <aside class="live-qr-wrap" aria-label="QR right">
+          <img class="live-qr-image" src="./assets/qr.png" alt="QR code" />
+        </aside>
       </div>
     </section>
   `;
-
-  const liveCloseBtn = document.getElementById("liveCloseBtn");
-  liveCloseBtn?.addEventListener("click", openHomePage);
 
   const renderSnapshot = async () => {
     let backendState;
