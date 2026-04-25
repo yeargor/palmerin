@@ -172,6 +172,7 @@ const MATCHMAKING_PRIORITY_QUANTILE = 0.25;
 const MATCHMAKING_STALE_TICKS = 3;
 const MATCHMAKING_RELAX_OFFSETS = Object.freeze([0, 0.4, 0.8]);
 const MATCHMAKING_FORCED_PAIR_CAP = 1;
+const LIVE_LEADERBOARD_FIXED_ROWS = 10;
 const LEVEL_GAIN_UPSET_THRESHOLD = 0.35;
 const LEVEL_GAIN_BALANCED_THRESHOLD = 0.6;
 const LOSER_STREAK_SHIELD_PER_LOSS = 0.06;
@@ -3058,7 +3059,15 @@ async function renderLiveLeaderboardPage() {
     const userMetaById = new Map(
       (Array.isArray(backendState.users) ? backendState.users : []).map((user) => [Number(user.id), user]),
     );
-    const rows = buildLeaderboardRows(backendState.leaderboard, userMetaById);
+    const rows = buildLeaderboardRows(backendState.leaderboard, userMetaById).slice(0, LIVE_LEADERBOARD_FIXED_ROWS);
+    while (rows.length < LIVE_LEADERBOARD_FIXED_ROWS) {
+      rows.push({
+        rating: "-",
+        level: "-",
+        name: "-",
+        telegram: "-",
+      });
+    }
     const displayState = {
       hiddenValues: Boolean(backendState.gameState?.leaderboardDisplay?.hiddenValues),
       revealTopFive: Boolean(backendState.gameState?.leaderboardDisplay?.revealTopFive),
@@ -3578,8 +3587,9 @@ function renderStats() {
 
 function renderLogs() {
   logListEl.innerHTML = "";
+  const visibleLogs = state.logs.filter((item) => (item?.type || "system") !== "system");
 
-  for (const [index, item] of state.logs.entries()) {
+  for (const [index, item] of visibleLogs.entries()) {
     const row = document.createElement("li");
     row.className = "log-item";
     const logType = item.type || "system";
@@ -3587,7 +3597,7 @@ function renderLogs() {
     if (logType === "combat" && item.combatResult) {
       row.classList.add(`log-combat-${item.combatResult}`);
     }
-    if (index === state.logs.length - 1) {
+    if (index === visibleLogs.length - 1) {
       row.classList.add("log-newest");
     }
 
