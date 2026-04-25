@@ -10,17 +10,17 @@ const COLOR_BASE_PROBABILITIES = {
   uncommon: 0.5,
   rare: 0.32,
   seraph: 0.13,
-  amber: 0.04,
-  reggae: 0.009,
-  palmerin: 0.009,
+  amber: 0.03,
+  reggae: 0.005,
+  palmerin: 0.004,
 };
 const COLOR_TIER_PRESSURE = {
   uncommon: -2.2,
   rare: -1.1,
   seraph: 0.3,
-  amber: 0.55,
-  reggae: 0.9,
-  palmerin: 0.9,
+  amber: 0.45,
+  reggae: 0.72,
+  palmerin: 0.68,
 };
 const AMBER_UNLOCK_STAT = 9;
 
@@ -223,7 +223,7 @@ export const componentById = {
     anchor: { pattern: "<( ^ )>", targetIndexes: [3, 5] },
     baseClass: "warrior",
     stats: { hp: 1, attack: 2 },
-    weight: 1,
+    weight: 2,
   }),
   arms_mage: new SpriteComponent({
     id: "arms_mage",
@@ -232,7 +232,7 @@ export const componentById = {
     anchor: { pattern: "/   \\", targetIndexes: [0, 4] },
     baseClass: "shared",
     stats: { hp: 1, attack: 1 },
-    weight: 1,
+    weight: 2,
   }),
   arms_mage_mantle_top: new SpriteComponent({
     id: "arms_mage_mantle_top",
@@ -249,7 +249,7 @@ export const componentById = {
     anchor: { pattern: "/  o\\", targetIndexes: [2, 2] },
     baseClass: "mage",
     stats: { hp: 1, attack: 2 },
-    weight: 1,
+    weight: 2,
   }),
   arms_cowboy: new SpriteComponent({
     id: "arms_cowboy",
@@ -263,7 +263,7 @@ export const componentById = {
     anchor: { pattern: "| _", targetIndexes: [2, 2] },
     baseClass: "cowboy",
     stats: { hp: 0, attack: 4 },
-    weight: 1,
+    weight: 2,
   }),
   arms_warrior_starter: new SpriteComponent({
     id: "arms_warrior_starter",
@@ -327,7 +327,7 @@ export const componentById = {
     anchor: { pattern: "/|___|\\", targetIndexes: [2, 4] },
     baseClass: "warrior",
     stats: { hp: 3, attack: 1 },
-    weight: 1,
+    weight: 2,
   }),
   torso_mage: new SpriteComponent({
     id: "torso_mage",
@@ -336,7 +336,7 @@ export const componentById = {
     anchor: { pattern: "/_____\\", targetIndexes: [2, 4] },
     baseClass: "mage",
     stats: { hp: 2, attack: 2 },
-    weight: 1,
+    weight: 2,
   }),
   torso_mage_mantle_bottom: new SpriteComponent({
     id: "torso_mage_mantle_bottom",
@@ -345,7 +345,7 @@ export const componentById = {
     anchor: { pattern: "/__/\\_\\", targetIndexes: [3, 4] },
     baseClass: "mage",
     stats: { hp: 2, attack: 2 },
-    weight: 1,
+    weight: 2,
   }),
   torso_cowboy: new SpriteComponent({
     id: "torso_cowboy",
@@ -354,7 +354,7 @@ export const componentById = {
     anchor: { pattern: "/+++0+\\", targetIndexes: [2, 4] },
     baseClass: "cowboy",
     stats: { hp: 1, attack: 2 },
-    weight: 1,
+    weight: 2,
   }),
   torso_warrior_starter: new SpriteComponent({
     id: "torso_warrior_starter",
@@ -727,9 +727,9 @@ export function getPresetColorTierWeights(preset) {
     (maxStat - (AMBER_UNLOCK_STAT - 1)) / Math.max(1, COMBAT_STAT_MAX - (AMBER_UNLOCK_STAT - 1)),
   );
   const amberActivation = amberActivationBase ** 1.35;
-  raw.amber *= (0.5 + 0.5 * topTierFactor) * amberActivation;
-  raw.reggae *= topTierFactor * (amberActivation ** 1.35);
-  raw.palmerin *= topTierFactor * (amberActivation ** 1.35);
+  raw.amber *= (0.4 + 0.5 * topTierFactor) * amberActivation;
+  raw.reggae *= 0.6 * topTierFactor * (amberActivation ** 1.5);
+  raw.palmerin *= 0.45 * topTierFactor * (amberActivation ** 1.6);
   const rawSum = COLOR_TIER_IDS.reduce((sum, tier) => sum + raw[tier], 0);
   const norm = rawSum > 0 ? rawSum : 1;
   const weights = Object.fromEntries(COLOR_TIER_IDS.map((tier) => [tier, (raw[tier] / norm) * 100]));
