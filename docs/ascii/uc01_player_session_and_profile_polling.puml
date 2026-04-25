@@ -1,0 +1,33 @@
+@startuml
+title UC01: Player session + profile sync
+
+actor "Telegram User" as U
+participant "Telegram WebView" as TG
+participant "Web App (index)" as WEB
+participant "Backend API" as API
+participant "Runtime Store" as STORE
+database "SQLite" as DB
+
+U -> TG : open mini app
+TG -> WEB : load index.html + app.v3.js
+
+WEB -> API : POST /api/session/init
+API -> STORE : getOrCreateUserForTelegram()
+alt new user
+  STORE -> DB : writeUsers + writeGameState
+end
+API --> WEB : user + profile
+
+WEB -> API : GET /api/profile/:id
+API -> STORE : buildLeaderboard()
+API -> DB : persistStore()
+API --> WEB : profile + user + gameState
+
+loop every 1.5s (stateBackendControlled)
+  WEB -> API : GET /api/profile/:id
+  API -> STORE : refresh profile from store
+  API --> WEB : latest profile/logs/stats
+end
+
+@enduml
+

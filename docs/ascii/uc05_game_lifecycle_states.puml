@@ -1,0 +1,15 @@
+@startuml
+title UC05: Game lifecycle states
+
+[*] --> WaitingUsers
+WaitingUsers --> Ready : users >= 2
+Ready --> RunningBattles : admin start battles
+RunningBattles --> Paused : admin pause battles
+Paused --> RunningBattles : admin start battles
+RunningBattles --> Finished : admin finish game\nor winner resolved
+Finished --> WaitingUsers : admin reset game
+WaitingUsers --> WaitingUsers : admin new user
+WaitingUsers --> [*] : admin clear users
+
+@enduml
+

@@ -1,0 +1,57 @@
+@startuml
+title UC07: buildLeaderboard() — who/when/why (end-to-end)
+
+actor "Player View" as PLAYER
+actor "Admin View" as ADMIN
+actor "Live View" as LIVE
+participant "Backend API Router" as API
+participant "buildLeaderboard()" as BL
+participant "In-memory store\n(users + gameState)" as STORE
+database "SQLite" as DB
+
+note over BL
+  Зачем метод нужен:
+  1) собрать актуальный TOP из users
+  2) пересчитать rating для участников
+  3) если game finished -> отдать frozen leaderboard
+end note
+
+== During game ==
+PLAYER -> API : GET /api/profile/:id
+API -> BL : buildLeaderboard()
+BL -> STORE : read users/gameState
+alt gameState.finished = false
+  BL -> STORE : recalc leaderboard\n+ mutate rating in memory
+else gameState.finished = true
+  BL -> STORE : return frozen leaderboard\n(excluding admin users)
+end
+API -> DB : persistStore()  (current code)
+API --> PLAYER : profile + gameState
+
+ADMIN -> API : GET /api/leaderboard
+API -> BL : buildLeaderboard()
+BL -> STORE : read/mutate ratings
+API -> DB : persistStore()  (current code)
+API --> ADMIN : leaderboard + users + config
+
+LIVE -> API : GET /api/live-leaderboard
+API -> BL : buildLeaderboard()
+BL -> STORE : read/mutate ratings
+API -> DB : persistStore()  (current code)
+API --> LIVE : public leaderboard snapshot
+
+== Finish game ==
+ADMIN -> API : POST /api/admin/finish-game
+API -> STORE : buildLeaderboardEntries()\napplyRatingsFromLeaderboard()
+API -> STORE : freeze leaderboard\nset finished=true
+API -> DB : persistStore()
+API --> ADMIN : winner + finished state
+
+note over API,DB
+  Сейчас write happens even on GET endpoints,
+  потому что buildLeaderboard() имеет side-effect
+  (rating mutation), и это затем сохраняется.
+end note
+
+@enduml
+

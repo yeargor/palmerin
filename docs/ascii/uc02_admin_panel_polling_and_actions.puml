@@ -1,0 +1,28 @@
+@startuml
+title UC02: Admin panel polling + controls
+
+actor "Admin User" as A
+participant "Admin View" as ADMIN
+participant "Backend API" as API
+participant "Runtime Store" as STORE
+database "SQLite" as DB
+
+A -> ADMIN : open /admin.html
+
+loop every 2s
+  ADMIN -> API : GET /api/leaderboard
+  ADMIN -> API : GET /readyz
+  API -> STORE : buildLeaderboard + gameState
+  API --> ADMIN : leaderboard + users + config
+end
+
+A -> ADMIN : click [start/pause/new/clear/reset/finish]
+ADMIN -> API : POST /api/admin/*
+API -> STORE : mutate game state/users
+API -> DB : persistStore()
+API --> ADMIN : action result
+ADMIN -> API : GET /api/leaderboard + /readyz
+API --> ADMIN : refreshed snapshot
+
+@enduml
+

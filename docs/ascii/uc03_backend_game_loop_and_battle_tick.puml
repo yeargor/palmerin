@@ -1,0 +1,25 @@
+@startuml
+title UC03: Backend game loop + battle tick
+
+participant "setInterval(250ms)" as LOOP
+participant "Backend Loop" as BL
+participant "Battle Engine" as ENG
+participant "Runtime Store" as STORE
+database "SQLite" as DB
+
+LOOP -> BL : on each loop iteration
+BL -> BL : tickGameLoop()
+
+alt game finished OR battles off OR participants < 2
+  BL -> BL : skip battle tick
+else interval reached
+  BL -> ENG : runSystemTick(users)
+  ENG --> BL : system updates
+  BL -> ENG : runBattleTick(users, config)
+  ENG --> BL : leaderboard + battle logs + winner?
+  BL -> STORE : apply outcomes to users/gameState
+  BL -> DB : persistStore()
+end
+
+@enduml
+

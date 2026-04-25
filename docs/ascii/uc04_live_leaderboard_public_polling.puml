@@ -1,0 +1,24 @@
+@startuml
+title UC04: Public live leaderboard page
+
+actor "Viewer" as V
+participant "Live View (/live)" as LIVE
+participant "Backend API" as API
+participant "Runtime Store" as STORE
+
+V -> LIVE : open /live.html
+
+LIVE -> API : GET /api/live-leaderboard (initial)
+API -> STORE : build leaderboard snapshot
+API --> LIVE : leaderboard + users + gameState
+LIVE -> LIVE : render ascii table
+
+loop every 2s
+  LIVE -> API : GET /api/live-leaderboard
+  API -> STORE : snapshot update
+  API --> LIVE : fresh leaderboard data
+  LIVE -> LIVE : rerender table
+end
+
+@enduml
+

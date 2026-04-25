@@ -1,0 +1,35 @@
+@startuml
+title UC06: System context (actors + components)
+
+actor "Player" as PLAYER
+actor "Admin" as ADMIN
+actor "Live Viewer" as VIEWER
+
+rectangle "Telegram Mini App Frontend" as FE {
+  [Index/Profile View]
+  [Admin View]
+  [Live Leaderboard View]
+}
+
+rectangle "Backend Service (Node.js)" as BE {
+  [HTTP API]
+  [Game Loop]
+  [In-memory Store]
+}
+
+database "SQLite" as DB
+
+PLAYER --> [Index/Profile View]
+ADMIN --> [Admin View]
+VIEWER --> [Live Leaderboard View]
+
+[Index/Profile View] --> [HTTP API]
+[Admin View] --> [HTTP API]
+[Live Leaderboard View] --> [HTTP API]
+
+[Game Loop] --> [In-memory Store]
+[HTTP API] --> [In-memory Store]
+[In-memory Store] --> DB
+
+@enduml
+

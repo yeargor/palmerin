@@ -79,9 +79,24 @@ test('runBattleTick updates components/color/adjective/class and syncs combat st
   assert.notEqual(left.adjective, 'Палмерин');
   assert.notEqual(right.adjective, 'Палмерин');
 
-  const changedComponentsCount =
-    Number(left.components.arms !== 'arms_warrior') +
-    Number(right.components.arms !== 'arms_cowboy');
+  const slots = ['hat', 'face', 'arms', 'torso', 'legs'];
+  const changedComponentsCount = slots.reduce((count, slot) => {
+    if (left.components[slot] !== (slot === 'hat' ? 'hat_warrior'
+      : slot === 'face' ? 'face_plain'
+      : slot === 'arms' ? 'arms_warrior'
+      : slot === 'torso' ? 'torso_warrior'
+      : 'legs_boots')) {
+      return count + 1;
+    }
+    if (right.components[slot] !== (slot === 'hat' ? 'hat_cowboy'
+      : slot === 'face' ? 'face_bandana'
+      : slot === 'arms' ? 'arms_cowboy'
+      : slot === 'torso' ? 'torso_cowboy'
+      : 'legs_boots')) {
+      return count + 1;
+    }
+    return count;
+  }, 0);
   assert.ok(changedComponentsCount >= 1);
 
   const leftStats = getPresetCombatStats(left.components);

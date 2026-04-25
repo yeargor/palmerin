@@ -481,6 +481,14 @@ body {
   color: inherit;
 }
 
+.sprite-gold {
+  color: #f4c542;
+}
+
+.sprite-leather {
+  color: #8b5a2b;
+}
+
 .sprite-dust {
   color: var(--legendary);
 }
