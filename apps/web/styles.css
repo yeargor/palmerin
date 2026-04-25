@@ -410,6 +410,21 @@ body.live-leaderboard-mode {
   line-height: 1.25;
 }
 
+.live-close-btn {
+  position: absolute;
+  left: 20px;
+  bottom: 14px;
+  z-index: 4;
+  border: 0;
+  background: transparent;
+  color: #ffffff;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 28px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+}
+
 @media (max-width: 980px) {
   .live-leaderboard-layout {
     grid-template-columns: 1fr;
